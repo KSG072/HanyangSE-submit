@@ -65,4 +65,5 @@ public class HanyangSETokenizer implements Tokenizer {
     	s.stem();
     	return s.getCurrent();
     }
+    //text, this is test
 }
