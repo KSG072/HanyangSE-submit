@@ -38,8 +38,9 @@ public class HanyangSETokenizer implements Tokenizer {
         // TODO: your code here...
     	List<String> result = new ArrayList<String>();
     	try {
-    		TokenStream stream = analyzer.tokenStream(null, new StringReader(str));
-    		while(stream.incrementToken()) {
+			TokenStream stream = analyzer.tokenStream(null, new StringReader(str));
+    		stream.reset();
+			while(stream.incrementToken()) {
     			result.add(stemString(
     					stream.getAttribute(
     							CharTermAttribute.class).toString()));
