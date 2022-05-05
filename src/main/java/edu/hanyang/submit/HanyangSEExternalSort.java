@@ -34,21 +34,22 @@ public class HanyangSEExternalSort implements ExternalSort {
     @Override
     public void sort(String infile, String outfile, String tmpdir, int blocksize, int nblocks) throws IOException {
         // TODO: your code here...
+
         //1)initial phase
-        ArrayList<MutableTriple<Integer, Integer, Integer>> dataArr = new ArrayList<>(blocksize);
+        ArrayList<MutableTriple<Integer, Integer, Integer>> dataArr = new ArrayList<>();
 
-
-        int BLOCKNUM = 15;
-        byte[] buffer = new byte[blocksize * BLOCKNUM];
+        int R = 15;
+        byte[] buffer = new byte[blocksize * R];
         int termId, docId, pos;
         int runNum = 0;
 
         // infile 모두 read
         try {
             DataInputStream inputStream = new DataInputStream(new BufferedInputStream(new FileInputStream(infile)));
-            while ((inputStream.read(buffer, blocksize * runNum * BLOCKNUM, blocksize * BLOCKNUM)) != -1) {
+            int initdata = -1;
+            while ((initdata = inputStream.read(buffer))!= -1) {
 //                inputStream.read(buffer, (buffer.length * runNum) + 1, buffer.length);
-                runNum += 1;
+
 
                 //1run (=15 block) 단위 read
                 for (int i = 0; i < buffer.length; i += 3) { // 3개씩 나눠서 dataArr 에 tuple 로 넣음
@@ -61,33 +62,23 @@ public class HanyangSEExternalSort implements ExternalSort {
                 // dataArr sort
                 Collections.sort(dataArr);
 
-                System.out.print("run0" + dataArr);
-                System.out.print(dataArr.size());
-
+                System.out.print(" write run0." + runNum+ "\n");
                 // dataArr => tmp run0.[]
-                DataOutputStream initTmp = new DataOutputStream(new BufferedOutputStream(new FileOutputStream(tmpdir + File.separator + "run0." + runNum + ".data")));
-
-                int dataNum = 0;
-                while (dataArr.size() > 0) {
-                    dataNum += 1;
-                    MutableTriple<Integer, Integer, Integer> data = dataArr.remove(dataNum);
-                    initTmp.write(data.getLeft());
-                    initTmp.write(data.getMiddle());
-                    initTmp.write(data.getRight());
-                }
-                // buffer 초기화
-
-                initTmp.flush();
-                initTmp.close();
-                inputStream.close();
+                makeFile(tmpdir, "run", dataArr,0, runNum);
+                runNum += 1;
             }
+            inputStream.close();
         } catch (Exception e) {
             System.out.println("no file to read\n");
         }
+
+
+        //2) n-way merge
+        _externalMergeSort(tmpdir, outfile, 1, nblocks, blocksize);
     }
 
     private void _externalMergeSort(String tmpDir, String outputFile,int step, int nblocks, int blocksize) throws IOException {
-        File[] fileArr = (new File(tmpDir + File.separator + "run" + String.valueOf(step - 1))).listFiles();
+        File[] fileArr = (new File(tmpDir + File.separator + String.valueOf(step - 1))).listFiles();
         ArrayList<DataInputStream> files = new ArrayList<>(nblocks);
         int cnt = 0;
         if (fileArr.length <= nblocks) {
@@ -106,7 +97,7 @@ public class HanyangSEExternalSort implements ExternalSort {
                 files.add(DataStream);
                 cnt++;
                 if (cnt == nblocks) {
-                    n_way_merge(files, outputFile, blocksize);
+                    n_way_merge(files, tmpDir, blocksize);
                     files.clear();
                     cnt = 0;
                 }
@@ -129,6 +120,33 @@ public class HanyangSEExternalSort implements ExternalSort {
             MutableTriple<Integer, Integer, Integer> tmp = new MutableTriple<>();
             dm.getTuple(tmp);
 
+        }
+    }
+
+    public static void makeFile(String dir, String outPutFileName, ArrayList<MutableTriple<Integer, Integer, Integer>> tupArr, int step, int runNum) {
+        try{
+            String fullpath;
+            if(step >= 0){
+                fullpath = dir + File.separator + step + File.separator + outPutFileName + runNum + ".data";
+                String pathExceptFileName = fullpath.substring(0, fullpath.lastIndexOf(File.separator));
+                File f = new File(pathExceptFileName);
+                if(!f.exists()) f.mkdir();
+            }
+            else {
+                fullpath = outPutFileName;
+            }
+
+            DataOutputStream outputStream = new DataOutputStream(new BufferedOutputStream(new FileOutputStream(fullpath)));
+            while(tupArr.size() > 0){
+                MutableTriple<Integer, Integer, Integer> data = tupArr.remove(0);
+                outputStream.write(data.getLeft());
+                outputStream.write(data.getMiddle());
+                outputStream.write(data.getRight());
+            }
+            outputStream.flush();
+            outputStream.close();
+        } catch (Exception e){
+            e.printStackTrace();
         }
     }
 }
