@@ -3,8 +3,6 @@ import org.apache.commons.lang3.tuple.MutableTriple;
 
 import java.io.DataInputStream;
 import java.io.IOException;
-import java.io.BufferedInputStream;
-import java.util.ArrayList;
 
 class DataManager {
     public boolean isEOF = false;
@@ -13,7 +11,9 @@ class DataManager {
 
     public DataManager(DataInputStream dis) throws IOException {
         this.dis = dis;
-        this.readNext();
+        tuple.setLeft(this.dis.readInt());
+        tuple.setMiddle(this.dis.readInt());
+        tuple.setRight(this.dis.readInt());
     }
 
     private boolean readNext() throws IOException {

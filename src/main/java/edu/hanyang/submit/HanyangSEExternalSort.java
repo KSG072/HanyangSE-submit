@@ -1,7 +1,6 @@
 package edu.hanyang.submit;
 
 import java.io.*;
-import java.nio.file.Files;
 import java.util.Comparator;
 import java.util.PriorityQueue;
 import java.util.*;
@@ -13,13 +12,13 @@ import org.apache.commons.lang3.tuple.MutableTriple;
 public class HanyangSEExternalSort implements ExternalSort {
 
     /**
-     * External sorting
-     *
-     * @param infile    정렬되지 않은 데이터가 있는 파일
-     * @param outfile   정렬된 데이터가 쓰일 파일
-     * @param tmpdir    임시파일을 위한 디렉토리
-     * @param blocksize 허용된 메모리 블록 하나의 크기z
-     * @param nblocks   허용된 메모리 블록 개수
+     * External sorting     
+     * @param infile    Input file
+     * @param outfile   Output file
+     * @param tmpdir    Temporary directory to be used for writing intermediate runs on 
+     * @param blocksize Available blocksize in the main memory of the current system
+     * @param nblocks   Available block numbers in the main memory of the current system
+     * @throws IOException  Exception while performing external sort
      */
 
     /*
@@ -38,7 +37,7 @@ public class HanyangSEExternalSort implements ExternalSort {
         ArrayList<MutableTriple<Integer, Integer, Integer>> dataArr = new ArrayList<>();
 
         int R = 6;
-        byte[] buffer = new byte[blocksize * R];
+        byte[] buffer = new byte[1024 * 9];
         int termId, docId, pos;
         int runNum = 0;
 
@@ -103,7 +102,7 @@ public class HanyangSEExternalSort implements ExternalSort {
                     cnt = 0;
                 }
             }
-            if (files.isEmpty()) n_way_merge(files, tmpDir, String.valueOf(step), String.valueOf(runNum));
+            if (!files.isEmpty()) n_way_merge(files, tmpDir, String.valueOf(step), String.valueOf(runNum));
             _externalMergeSort(tmpDir, outputFile, step + 1, nblocks, blocksize);
         }
     }
