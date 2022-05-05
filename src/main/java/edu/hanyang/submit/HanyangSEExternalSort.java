@@ -88,20 +88,22 @@ public class HanyangSEExternalSort implements ExternalSort {
 
     private void _externalMergeSort(String tmpDir, String outputFile,int step, int nblocks, int blocksize) throws IOException {
         File[] fileArr = (new File(tmpDir + File.separator + "run" + String.valueOf(step - 1))).listFiles();
-        ArrayList<BufferedInputStream> files = new ArrayList<>(nblocks);
+        ArrayList<DataInputStream> files = new ArrayList<>(nblocks);
         int cnt = 0;
         if (fileArr.length <= nblocks) {
             for (File f : fileArr) {
                 FileInputStream fileStream = new FileInputStream(f);
                 BufferedInputStream buffStream = new BufferedInputStream(fileStream);
-                files.add(buffStream);
+                DataInputStream DataStream = new DataInputStream(buffStream);
+                files.add(DataStream);
             }
             n_way_merge(files, outputFile, blocksize);
         } else {
             for (File f : fileArr) {
                 FileInputStream fileStream = new FileInputStream(f);
                 BufferedInputStream buffStream = new BufferedInputStream(fileStream);
-                files.add(buffStream);
+                DataInputStream DataStream = new DataInputStream(buffStream);
+                files.add(DataStream);
                 cnt++;
                 if (cnt == nblocks) {
                     n_way_merge(files, outputFile, blocksize);
@@ -113,12 +115,15 @@ public class HanyangSEExternalSort implements ExternalSort {
         }
     }
 
-    public void n_way_merge(List<DataInputStream> files, String outputFile) throws IOException {
+    public void n_way_merge(List<DataInputStream> files, String outputFile, int blocksize) throws IOException {
         PriorityQueue<DataManager> queue = new PriorityQueue<DataManager>(files.size(), new Comparator<DataManager>() {
             public int compare(DataManager o1, DataManager o2) {
                 return o1.tuple.compareTo(o2.tuple);
             }
         });
+        for(DataInputStream f : files){
+            queue.offer(new DataManager(f));
+        }
         while(queue.size()!=0){
             DataManager dm = queue.poll();
             MutableTriple<Integer, Integer, Integer> tmp = new MutableTriple<>();

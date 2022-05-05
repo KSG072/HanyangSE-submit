@@ -8,29 +8,19 @@ import java.util.ArrayList;
 
 class DataManager {
     public boolean isEOF = false;
-    private byte[] buffer = null;
-    private BufferedInputStream dis = null;
-    private DataInputStream inputStream = null;
+    private DataInputStream dis = null;
     public MutableTriple<Integer, Integer, Integer> tuple = new MutableTriple<Integer, Integer, Integer>(0, 0, 0);
 
-    public DataManager(BufferedInputStream dis, int blocksize) throws IOException {
+    public DataManager(DataInputStream dis) throws IOException {
         this.dis = dis;
-        this.buffer = new byte[blocksize];
-        DataInputStream inputStream = new DataInputStream(dis);
-        inputStream.read(buffer);
-    }
-    private int nextRead() throws IOException{
-        return this.dis.read(buffer);
+        this.readNext();
     }
 
     private boolean readNext() throws IOException {
-        if (isEOF) {
-            if(nextRead() != -1)
-
-        }
-        tuple.setLeft(inputStream.readInt());
-        tuple.setMiddle(inputStream.readInt());
-        tuple.setRight(inputStream.readInt());
+        if (isEOF) return false;
+        tuple.setLeft(dis.readInt());
+        tuple.setMiddle(dis.readInt());
+        tuple.setRight(dis.readInt());
         return true;
     }
 
@@ -39,5 +29,9 @@ class DataManager {
         ret.setMiddle(tuple.getMiddle());
         ret.setRight(tuple.getRight());
         isEOF = (!readNext());
+    }
+
+    public int compare(DataManager o1, DataManager o2) {
+        return o1.tuple.compareTo(o2.tuple);
     }
 }
