@@ -79,9 +79,10 @@ public class ExternalSortTest {
                 previousTermId = termId;
                 previousDocId = docId;
                 previousPos = pos;
-
+                
                 if (cnt++ >= 20000) break;
             }
         }
     }
 }
+

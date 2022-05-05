@@ -183,3 +183,6 @@ fabric.properties
 target/
 lib/
 data/input_10000000.data
+*.log
+*~
+*.swp
