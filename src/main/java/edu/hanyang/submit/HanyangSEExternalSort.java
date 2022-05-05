@@ -37,7 +37,7 @@ public class HanyangSEExternalSort implements ExternalSort {
         ArrayList<MutableTriple<Integer, Integer, Integer>> dataArr = new ArrayList<>();
 
         int R = 6;
-        byte[] buffer = new byte[1024 * 9];
+        byte[] buffer = new byte[blocksize * 3];
         int termId, docId, pos;
         int runNum = 0;
 
