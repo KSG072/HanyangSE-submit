@@ -37,88 +37,45 @@ public class HanyangSEExternalSort implements ExternalSort {
         //1)initial phase
         ArrayList<MutableTriple<Integer, Integer, Integer>> dataArr = new ArrayList<>(blocksize);
 
-        BufferedInputStream inputStream = new BufferedInputStream(new FileInputStream(infile));
-        byte[] buffer = new byte[blocksize * 15];
-        int termId, docId, pos;
-        int runNum = 0;
 
-        // infile 모두 read
-        while (inputStream.read(buffer) != -1) {
-            runNum += 1;
-            try {
-                //1run (=15 block) 단위 read
-                for (int i = 0; i < buffer.length; i += 3) { // 3개씩 나눠서 dataArr 에 tuple 로 넣음
-                    termId = buffer[i];
-                    docId = buffer[i + 1];
-                    pos = buffer[i + 2];
-
-                    dataArr.add(new MutableTriple<>(termId, docId, pos));
-                }
-                // dataArr sort
-                Collections.sort(dataArr);
-
-//                System.out.print("run0" + dataArr);
-
-
-                // dataArr => tmp run0.[]
-                BufferedOutputStream initTmp = new BufferedOutputStream(new FileOutputStream(tmpdir + File.separator + "run0." + runNum + ".data"));
-
-                byte[] byteArray;
-                ByteArrayOutputStream baos = new ByteArrayOutputStream();
-                try {
-                    ObjectOutputStream oos = new ObjectOutputStream(baos);
-                    oos.writeObject(dataArr);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-                byteArray = baos.toByteArray();
-
-                initTmp.write(byteArray);
-                // buffer 초기화
-                initTmp.flush();
-
-            } catch (Exception e) {
-                System.out.println("no file to read\n");
-            }
-        }
     }
 
-    private void _externalMergeSort(String tmpDir, String outputFile, int step, int nblocks, int blocksize) throws IOException {
-        File[] fileArr = (new File(tmpDir + File.separator + "run" + String.valueOf(step-1))).listFiles();
-        ArrayList<BufferedInputStream> files = new ArrayList<>(nblocks);
-        int cnt = 0;
-        if (fileArr.length <= nblocks - 1) {
-            for (File f : fileArr) {
-                FileInputStream fileStream = new FileInputStream(f);
-                BufferedInputStream buffStream = new BufferedInputStream(fileStream);
-                files.add(buffStream);
-            }
-            n_way_merge(files, outputFile);
-        } else {
-            for (File f : fileArr) {
-                FileInputStream fileStream = new FileInputStream(f);
-                BufferedInputStream buffStream = new BufferedInputStream(fileStream);
-                files.add(buffStream);
-                cnt++;
-                if (cnt == nblocks - 1) {
-                    n_way_merge(files, outputFile);
-                    files.clear(); cnt = 0;
-                }
-                _externalMergeSort(tmpDir, outputFile, step + 1, nblocks, blocksize);
-            }
-        }
-    }
-
-    public void n_way_merge(ArrayList<BufferedInputStream> files, String outputFile) throws IOException {
-        PriorityQueue<DataManager> queue = new PriorityQueue<>
-                (files.size(), new Comparator<DataManager>() {
-                    public int compare(DataManager o1, DataManager o2) {
-                        return o1.tuple.compareTo(o2.tuple);
-                    }
-                });
-        while (queue.size() != 0) {
-            DataManager dm = queue.poll();
-            MutableTriple<Integer, Integer, Integer> tmp = dm.getTuple();
-        }
-    }
+//    private void _externalMergeSort(String tmpDir, String outputFile, int step, int nblocks, int blocksize) throws IOException {
+//        File[] fileArr = (new File(tmpDir + File.separator + "run" + String.valueOf(step-1))).listFiles();
+//        ArrayList<BufferedInputStream> files = new ArrayList<>(nblocks);
+//        int cnt = 0;
+//        if (fileArr.length <= nblocks - 1) {
+//            for (File f : fileArr) {
+//                FileInputStream fileStream = new FileInputStream(f);
+//                BufferedInputStream buffStream = new BufferedInputStream(fileStream);
+//                files.add(buffStream);
+//            }
+//            n_way_merge(files, outputFile);
+//        } else {
+//            for (File f : fileArr) {
+//                FileInputStream fileStream = new FileInputStream(f);
+//                BufferedInputStream buffStream = new BufferedInputStream(fileStream);
+//                files.add(buffStream);
+//                cnt++;
+//                if (cnt == nblocks - 1) {
+//                    n_way_merge(files, outputFile);
+//                    files.clear(); cnt = 0;
+//                }
+//                _externalMergeSort(tmpDir, outputFile, step + 1, nblocks, blocksize);
+//            }
+//        }
+//    }
+//
+//    public void n_way_merge(ArrayList<BufferedInputStream> files, String outputFile) throws IOException {
+//        PriorityQueue<DataManager> queue = new PriorityQueue<>
+//                (files.size(), new Comparator<DataManager>() {
+//                    public int compare(DataManager o1, DataManager o2) {
+//                        return o1.tuple.compareTo(o2.tuple);
+//                    }
+//                });
+//        while (queue.size() != 0) {
+//            DataManager dm = queue.poll();
+//            MutableTriple<Integer, Integer, Integer> tmp = dm.getTuple();
+//        }
+//    }
 }
