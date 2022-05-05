@@ -2,13 +2,13 @@ package edu.hanyang.submit;
 
 import java.io.*;
 import java.nio.file.Files;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
+import java.util.Comparator;
+import java.util.PriorityQueue;
+import java.util.*;
 
 import io.github.hyerica_bdml.indexer.ExternalSort;
 import org.apache.commons.lang3.tuple.MutableTriple;
-import org.apache.lucene.util.PriorityQueue;
+import scala.Mutable;
 
 
 public class HanyangSEExternalSort implements ExternalSort {
@@ -44,9 +44,9 @@ public class HanyangSEExternalSort implements ExternalSort {
         int runNum = 0;
 
         // infile 모두 read
-        try{
+        try {
             DataInputStream inputStream = new DataInputStream(new BufferedInputStream(new FileInputStream(infile)));
-            while ( (inputStream.read(buffer, blocksize*runNum*BLOCKNUM, blocksize*BLOCKNUM) )!= -1 ) {
+            while ((inputStream.read(buffer, blocksize * runNum * BLOCKNUM, blocksize * BLOCKNUM)) != -1) {
 //                inputStream.read(buffer, (buffer.length * runNum) + 1, buffer.length);
                 runNum += 1;
 
@@ -68,9 +68,9 @@ public class HanyangSEExternalSort implements ExternalSort {
                 DataOutputStream initTmp = new DataOutputStream(new BufferedOutputStream(new FileOutputStream(tmpdir + File.separator + "run0." + runNum + ".data")));
 
                 int dataNum = 0;
-                while(dataArr.size() > 0){
+                while (dataArr.size() > 0) {
                     dataNum += 1;
-                    MutableTriple<Integer, Integer, Integer> data = dataArr.remove(dataNum) ;
+                    MutableTriple<Integer, Integer, Integer> data = dataArr.remove(dataNum);
                     initTmp.write(data.getLeft());
                     initTmp.write(data.getMiddle());
                     initTmp.write(data.getRight());
@@ -82,11 +82,12 @@ public class HanyangSEExternalSort implements ExternalSort {
                 inputStream.close();
             }
         } catch (Exception e) {
-                System.out.println("no file to read\n");
+            System.out.println("no file to read\n");
         }
+    }
 
-    private void _externalMergeSort(String tmpDir, String outputFile, int step, int nblocks, int blocksize) throws IOException {
-        File[] fileArr = (new File(tmpDir + File.separator + "run" + String.valueOf(step-1))).listFiles();
+    private void _externalMergeSort(String tmpDir, String outputFile,int step, int nblocks, int blocksize) throws IOException {
+        File[] fileArr = (new File(tmpDir + File.separator + "run" + String.valueOf(step - 1))).listFiles();
         ArrayList<BufferedInputStream> files = new ArrayList<>(nblocks);
         int cnt = 0;
         if (fileArr.length <= nblocks) {
@@ -104,28 +105,25 @@ public class HanyangSEExternalSort implements ExternalSort {
                 cnt++;
                 if (cnt == nblocks) {
                     n_way_merge(files, outputFile, blocksize);
-                    files.clear(); cnt = 0;
+                    files.clear();
+                    cnt = 0;
                 }
                 _externalMergeSort(tmpDir, outputFile, step + 1, nblocks, blocksize);
             }
         }
     }
-    public void n_way_merge(ArrayList<BufferedInputStream> files, String outputFile, int blocksize) throws IOException {
-        PriorityQueue<DataManager> tmpQueue = new PriorityQueue<>();
-        for(BufferedInputStream f : files){
-            DataManager dataman = new DataManager(f, blocksize);
-        }
-        PriorityQueue<DataManager> queue = new PriorityQueue<>
-                (files.size(), new Comparator<DataManager>() {
-                    public int compare(DataManager o1, DataManager o2) {
-                        return o1.tuple.compareTo(o2.tuple);
-                    }
-                });
-        while (queue.size() != 0) {
+
+    public void n_way_merge(List<DataInputStream> files, String outputFile) throws IOException {
+        PriorityQueue<DataManager> queue = new PriorityQueue<DataManager>(files.size(), new Comparator<DataManager>() {
+            public int compare(DataManager o1, DataManager o2) {
+                return o1.tuple.compareTo(o2.tuple);
+            }
+        });
+        while(queue.size()!=0){
             DataManager dm = queue.poll();
             MutableTriple<Integer, Integer, Integer> tmp = new MutableTriple<>();
             dm.getTuple(tmp);
-        }
 
+        }
     }
 }
