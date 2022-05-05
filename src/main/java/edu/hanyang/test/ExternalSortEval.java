@@ -36,7 +36,7 @@ public class ExternalSortEval {
         } else {
             Files.createDirectory(Paths.get(TEMP_DIR_PATH));
         }
-
+        
         try {
             Files.deleteIfExists(Paths.get(OUTPUT_DATA_PATH));
         }
@@ -52,14 +52,15 @@ public class ExternalSortEval {
         long duration = System.currentTimeMillis() - currentTime;
         System.err.println(blocksize + "\t" + nblocks + "\t" + ((double) duration / 1000.0));
     }
-
+    
     public static void main(String[] args) throws IOException {
-        System.out.println("available memroy = " +
-                ManagementFactory.getMemoryMXBean().getHeapMemoryUsage().getMax());
-
-        int bsize = Integer.parseInt(args[0]);
-        int n = Integer.parseInt(args[1]);
-        prepare();
-        testSort(bsize, n);
+    	System.out.println("available memroy = " + 
+    	        ManagementFactory.getMemoryMXBean().getHeapMemoryUsage().getMax());
+    	
+    	int bsize = Integer.parseInt(args[0]);
+    	int n = Integer.parseInt(args[1]);
+    	prepare();
+    	testSort(bsize, n);
     }
 }
+

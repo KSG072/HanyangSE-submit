@@ -36,7 +36,7 @@ public class HanyangSEExternalSort implements ExternalSort {
         //1)initial phase
         ArrayList<MutableTriple<Integer, Integer, Integer>> dataArr = new ArrayList<>();
 
-        int R = 15;
+        int R = 6;
         byte[] buffer = new byte[blocksize * R];
         int termId, docId, pos;
         int runNum = 0;
@@ -96,13 +96,14 @@ public class HanyangSEExternalSort implements ExternalSort {
                 files.add(DataStream);
                 cnt++;
                 if (cnt == nblocks) {
-                    n_way_merge(files, outputFile, String.valueOf(step), String.valueOf(runNum));
+                    n_way_merge(files, tmpDir, String.valueOf(step), String.valueOf(runNum));
                     runNum++;
                     files.clear();
                     cnt = 0;
                 }
-                _externalMergeSort(tmpDir, outputFile, step + 1, nblocks, blocksize);
             }
+            if (files.isEmpty()) n_way_merge(files, tmpDir, String.valueOf(step), String.valueOf(runNum));
+            _externalMergeSort(tmpDir, outputFile, step + 1, nblocks, blocksize);
         }
     }
 
@@ -128,7 +129,7 @@ public class HanyangSEExternalSort implements ExternalSort {
     public static void makeFile(String path, String step, String runNum, ArrayList<MutableTriple<Integer, Integer, Integer>> tupArr) {
         try{
             String fullpath = path + File.separator + step + File.separator + runNum + ".data";
-            if(path.equals("data/output_10000000.data")) fullpath = "data/output_10000000.data";
+            if(path.equals("data/output_10000000.data")) fullpath = "data" + File.separator + "output_10000000.data";
 
             String pathExceptFileName = fullpath.substring(0, fullpath.lastIndexOf(File.separator));
             File f = new File(pathExceptFileName);
