@@ -68,6 +68,9 @@ public class ExternalSortTest {
                 int docId = in.readInt();
                 int pos = in.readInt();
 
+                //이거 코드완성되면 지우기
+                System.out.println("( "+termId+", "+docId+", "+pos+" )");
+
                 Assert.assertTrue(previousTermId <= termId);
                 if (previousTermId == termId) {
                     Assert.assertTrue(previousDocId <= docId);

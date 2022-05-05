@@ -8,7 +8,6 @@ import java.util.*;
 
 import io.github.hyerica_bdml.indexer.ExternalSort;
 import org.apache.commons.lang3.tuple.MutableTriple;
-import scala.Mutable;
 
 
 public class HanyangSEExternalSort implements ExternalSort {
@@ -62,11 +61,11 @@ public class HanyangSEExternalSort implements ExternalSort {
                 // dataArr sort
                 Collections.sort(dataArr);
 
-                System.out.print(" write run0." + runNum+ "\n");
                 // dataArr => tmp run0.[]
-                makeFile(tmpdir, "run", dataArr,0, runNum);
+                makeFile(tmpdir, String.valueOf(0), String.valueOf(runNum), dataArr);
                 runNum += 1;
             }
+            System.out.println("initailized run");
             inputStream.close();
         } catch (Exception e) {
             System.out.println("no file to read\n");
@@ -78,8 +77,9 @@ public class HanyangSEExternalSort implements ExternalSort {
     }
 
     private void _externalMergeSort(String tmpDir, String outputFile,int step, int nblocks, int blocksize) throws IOException {
-        File[] fileArr = (new File(tmpDir + File.separator + String.valueOf(step - 1))).listFiles();
+        File[] fileArr = (new File(tmpDir + File.separator + String.valueOf(step - 1) + File.separator)).listFiles();
         ArrayList<DataInputStream> files = new ArrayList<>(nblocks);
+        int runNum = 0;
         int cnt = 0;
         if (fileArr.length <= nblocks) {
             for (File f : fileArr) {
@@ -88,7 +88,7 @@ public class HanyangSEExternalSort implements ExternalSort {
                 DataInputStream DataStream = new DataInputStream(buffStream);
                 files.add(DataStream);
             }
-            n_way_merge(files, outputFile, blocksize);
+            n_way_merge(files, outputFile, "", "");
         } else {
             for (File f : fileArr) {
                 FileInputStream fileStream = new FileInputStream(f);
@@ -97,7 +97,8 @@ public class HanyangSEExternalSort implements ExternalSort {
                 files.add(DataStream);
                 cnt++;
                 if (cnt == nblocks) {
-                    n_way_merge(files, tmpDir, blocksize);
+                    n_way_merge(files, outputFile, String.valueOf(step), String.valueOf(runNum));
+                    runNum++;
                     files.clear();
                     cnt = 0;
                 }
@@ -106,7 +107,8 @@ public class HanyangSEExternalSort implements ExternalSort {
         }
     }
 
-    public void n_way_merge(List<DataInputStream> files, String outputFile, int blocksize) throws IOException {
+    public void n_way_merge(List<DataInputStream> files, String outputFile, String step, String runNum) throws IOException {
+        ArrayList<MutableTriple<Integer, Integer, Integer>> outputbuf = new ArrayList<>();
         PriorityQueue<DataManager> queue = new PriorityQueue<DataManager>(files.size(), new Comparator<DataManager>() {
             public int compare(DataManager o1, DataManager o2) {
                 return o1.tuple.compareTo(o2.tuple);
@@ -117,31 +119,28 @@ public class HanyangSEExternalSort implements ExternalSort {
         }
         while(queue.size()!=0){
             DataManager dm = queue.poll();
-            MutableTriple<Integer, Integer, Integer> tmp = new MutableTriple<>();
-            dm.getTuple(tmp);
-
+            MutableTriple<Integer, Integer, Integer> data = new MutableTriple<>();
+            dm.getTuple(data);
+            outputbuf.add(data);
         }
+        makeFile(outputFile, step, runNum, outputbuf);
     }
 
-    public static void makeFile(String dir, String outPutFileName, ArrayList<MutableTriple<Integer, Integer, Integer>> tupArr, int step, int runNum) {
+    public static void makeFile(String path, String step, String runNum, ArrayList<MutableTriple<Integer, Integer, Integer>> tupArr) {
         try{
-            String fullpath;
-            if(step >= 0){
-                fullpath = dir + File.separator + step + File.separator + outPutFileName + runNum + ".data";
-                String pathExceptFileName = fullpath.substring(0, fullpath.lastIndexOf(File.separator));
-                File f = new File(pathExceptFileName);
-                if(!f.exists()) f.mkdir();
-            }
-            else {
-                fullpath = outPutFileName;
-            }
+            String fullpath = path + File.separator + step + File.separator + runNum + ".data";
+            if(path.equals("data/output_10000000.data")) fullpath = "data/output_10000000.data";
+
+            String pathExceptFileName = fullpath.substring(0, fullpath.lastIndexOf(File.separator));
+            File f = new File(pathExceptFileName);
+            if(!f.exists()) f.mkdir();
 
             DataOutputStream outputStream = new DataOutputStream(new BufferedOutputStream(new FileOutputStream(fullpath)));
             while(tupArr.size() > 0){
                 MutableTriple<Integer, Integer, Integer> data = tupArr.remove(0);
-                outputStream.write(data.getLeft());
-                outputStream.write(data.getMiddle());
-                outputStream.write(data.getRight());
+                outputStream.writeInt(data.getLeft());
+                outputStream.writeInt(data.getMiddle());
+                outputStream.writeInt(data.getRight());
             }
             outputStream.flush();
             outputStream.close();
