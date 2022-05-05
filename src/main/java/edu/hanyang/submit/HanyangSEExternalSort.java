@@ -85,45 +85,47 @@ public class HanyangSEExternalSort implements ExternalSort {
                 System.out.println("no file to read\n");
         }
 
+    private void _externalMergeSort(String tmpDir, String outputFile, int step, int nblocks, int blocksize) throws IOException {
+        File[] fileArr = (new File(tmpDir + File.separator + "run" + String.valueOf(step-1))).listFiles();
+        ArrayList<BufferedInputStream> files = new ArrayList<>(nblocks);
+        int cnt = 0;
+        if (fileArr.length <= nblocks) {
+            for (File f : fileArr) {
+                FileInputStream fileStream = new FileInputStream(f);
+                BufferedInputStream buffStream = new BufferedInputStream(fileStream);
+                files.add(buffStream);
+            }
+            n_way_merge(files, outputFile, blocksize);
+        } else {
+            for (File f : fileArr) {
+                FileInputStream fileStream = new FileInputStream(f);
+                BufferedInputStream buffStream = new BufferedInputStream(fileStream);
+                files.add(buffStream);
+                cnt++;
+                if (cnt == nblocks) {
+                    n_way_merge(files, outputFile, blocksize);
+                    files.clear(); cnt = 0;
+                }
+                _externalMergeSort(tmpDir, outputFile, step + 1, nblocks, blocksize);
+            }
+        }
+    }
+    public void n_way_merge(ArrayList<BufferedInputStream> files, String outputFile, int blocksize) throws IOException {
+        PriorityQueue<DataManager> tmpQueue = new PriorityQueue<>();
+        for(BufferedInputStream f : files){
+            DataManager dataman = new DataManager(f, blocksize);
+        }
+        PriorityQueue<DataManager> queue = new PriorityQueue<>
+                (files.size(), new Comparator<DataManager>() {
+                    public int compare(DataManager o1, DataManager o2) {
+                        return o1.tuple.compareTo(o2.tuple);
+                    }
+                });
+        while (queue.size() != 0) {
+            DataManager dm = queue.poll();
+            MutableTriple<Integer, Integer, Integer> tmp = new MutableTriple<>();
+            dm.getTuple(tmp);
+        }
 
     }
-
-//    private void _externalMergeSort(String tmpDir, String outputFile, int step, int nblocks, int blocksize) throws IOException {
-//        File[] fileArr = (new File(tmpDir + File.separator + "run" + String.valueOf(step-1))).listFiles();
-//        ArrayList<BufferedInputStream> files = new ArrayList<>(nblocks);
-//        int cnt = 0;
-//        if (fileArr.length <= nblocks - 1) {
-//            for (File f : fileArr) {
-//                FileInputStream fileStream = new FileInputStream(f);
-//                BufferedInputStream buffStream = new BufferedInputStream(fileStream);
-//                files.add(buffStream);
-//            }
-//            n_way_merge(files, outputFile);
-//        } else {
-//            for (File f : fileArr) {
-//                FileInputStream fileStream = new FileInputStream(f);
-//                BufferedInputStream buffStream = new BufferedInputStream(fileStream);
-//                files.add(buffStream);
-//                cnt++;
-//                if (cnt == nblocks - 1) {
-//                    n_way_merge(files, outputFile);
-//                    files.clear(); cnt = 0;
-//                }
-//                _externalMergeSort(tmpDir, outputFile, step + 1, nblocks, blocksize);
-//            }
-//        }
-//    }
-//
-//    public void n_way_merge(ArrayList<BufferedInputStream> files, String outputFile) throws IOException {
-//        PriorityQueue<DataManager> queue = new PriorityQueue<>
-//                (files.size(), new Comparator<DataManager>() {
-//                    public int compare(DataManager o1, DataManager o2) {
-//                        return o1.tuple.compareTo(o2.tuple);
-//                    }
-//                });
-//        while (queue.size() != 0) {
-//            DataManager dm = queue.poll();
-//            MutableTriple<Integer, Integer, Integer> tmp = dm.getTuple();
-//        }
-//    }
 }
