@@ -52,9 +52,9 @@ public class HanyangSEExternalSort implements ExternalSort {
 
                 //1run (=15 block) 단위 read
                 for (int i = 0; i < buffer.length; i += 3) { // 3개씩 나눠서 dataArr 에 tuple 로 넣음
-                    termId = buffer[i];
-                    docId = buffer[i + 1];
-                    pos = buffer[i + 2];
+                    termId = buffer[i] & 0xff;
+                    docId = buffer[i + 1] & 0xff;
+                    pos = buffer[i + 2] & 0xff;
                     dataArr.add(new MutableTriple<>(termId, docId, pos));
                 }
 
