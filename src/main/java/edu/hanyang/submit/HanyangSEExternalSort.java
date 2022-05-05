@@ -37,7 +37,7 @@ public class HanyangSEExternalSort implements ExternalSort {
         ArrayList<MutableTriple<Integer, Integer, Integer>> dataArr = new ArrayList<>();
 
         int R = 6;
-        byte[] buffer = new byte[blocksize * R];
+        byte[] buffer = new byte[1024 * 9];
         int termId, docId, pos;
         int runNum = 0;
 
@@ -102,7 +102,7 @@ public class HanyangSEExternalSort implements ExternalSort {
                     cnt = 0;
                 }
             }
-            if (files.isEmpty()) n_way_merge(files, tmpDir, String.valueOf(step), String.valueOf(runNum));
+            if (!files.isEmpty()) n_way_merge(files, tmpDir, String.valueOf(step), String.valueOf(runNum));
             _externalMergeSort(tmpDir, outputFile, step + 1, nblocks, blocksize);
         }
     }
