@@ -38,6 +38,54 @@ public class HanyangSEExternalSort implements ExternalSort {
         ArrayList<MutableTriple<Integer, Integer, Integer>> dataArr = new ArrayList<>(blocksize);
 
 
+        int BLOCKNUM = 15;
+        byte[] buffer = new byte[blocksize * BLOCKNUM];
+        int termId, docId, pos;
+        int runNum = 0;
+
+        // infile 모두 read
+        try{
+            DataInputStream inputStream = new DataInputStream(new BufferedInputStream(new FileInputStream(infile)));
+            while ( (inputStream.read(buffer, blocksize*runNum*BLOCKNUM, blocksize*BLOCKNUM) )!= -1 ) {
+//                inputStream.read(buffer, (buffer.length * runNum) + 1, buffer.length);
+                runNum += 1;
+
+                //1run (=15 block) 단위 read
+                for (int i = 0; i < buffer.length; i += 3) { // 3개씩 나눠서 dataArr 에 tuple 로 넣음
+                    termId = buffer[i];
+                    docId = buffer[i + 1];
+                    pos = buffer[i + 2];
+                    dataArr.add(new MutableTriple<>(termId, docId, pos));
+                }
+
+                // dataArr sort
+                Collections.sort(dataArr);
+
+                System.out.print("run0" + dataArr);
+                System.out.print(dataArr.size());
+
+                // dataArr => tmp run0.[]
+                DataOutputStream initTmp = new DataOutputStream(new BufferedOutputStream(new FileOutputStream(tmpdir + File.separator + "run0." + runNum + ".data")));
+
+                int dataNum = 0;
+                while(dataArr.size() > 0){
+                    dataNum += 1;
+                    MutableTriple<Integer, Integer, Integer> data = dataArr.remove(dataNum) ;
+                    initTmp.write(data.getLeft());
+                    initTmp.write(data.getMiddle());
+                    initTmp.write(data.getRight());
+                }
+                // buffer 초기화
+
+                initTmp.flush();
+                initTmp.close();
+                inputStream.close();
+            }
+        } catch (Exception e) {
+                System.out.println("no file to read\n");
+        }
+
+
     }
 
 //    private void _externalMergeSort(String tmpDir, String outputFile, int step, int nblocks, int blocksize) throws IOException {

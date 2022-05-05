@@ -7,6 +7,7 @@
     <list default="true" id="613b8d8f-fed5-440a-acff-2bfb8d767694" name="변경" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/edu/hanyang/submit/HanyangSEExternalSort.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/edu/hanyang/submit/HanyangSEExternalSort.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/test/java/edu/hanyang/ExternalSortTest.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/test/java/edu/hanyang/ExternalSortTest.java" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -160,7 +161,7 @@
       <workItem from="1650714618968" duration="4434000" />
       <workItem from="1651372546865" duration="18114000" />
       <workItem from="1651550769309" duration="5144000" />
-      <workItem from="1651715541729" duration="867000" />
+      <workItem from="1651715541729" duration="9192000" />
     </task>
     <servers />
   </component>
