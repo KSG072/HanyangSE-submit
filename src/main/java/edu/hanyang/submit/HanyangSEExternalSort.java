@@ -37,7 +37,7 @@ public class HanyangSEExternalSort implements ExternalSort {
         ArrayList<MutableTriple<Integer, Integer, Integer>> dataArr = new ArrayList<>();
 
         int R = 6;
-        byte[] buffer = new byte[blocksize * 3];
+        byte[] buffer = new byte[blocksize * 12];
         int termId, docId, pos;
         int runNum = 0;
 
@@ -45,7 +45,7 @@ public class HanyangSEExternalSort implements ExternalSort {
         try {
             DataInputStream inputStream = new DataInputStream(new BufferedInputStream(new FileInputStream(infile)));
             int initdata = -1;
-            while ((initdata = inputStream.read(buffer))!= -1) {
+            while ((initdata = inputStream.read(buffer)) != -1) {
 //                inputStream.read(buffer, (buffer.length * runNum) + 1, buffer.length);
 
 
@@ -80,14 +80,14 @@ public class HanyangSEExternalSort implements ExternalSort {
         ArrayList<DataInputStream> files = new ArrayList<>(nblocks);
         int runNum = 0;
         int cnt = 0;
-        if (fileArr.length <= nblocks) {
+        if (fileArr.length < nblocks) {
             for (File f : fileArr) {
                 FileInputStream fileStream = new FileInputStream(f);
                 BufferedInputStream buffStream = new BufferedInputStream(fileStream);
                 DataInputStream DataStream = new DataInputStream(buffStream);
                 files.add(DataStream);
             }
-            n_way_merge(files, outputFile, "", "");
+            n_way_merge(files, outputFile, "", "", blocksize);
         } else {
             for (File f : fileArr) {
                 FileInputStream fileStream = new FileInputStream(f);
@@ -95,19 +95,19 @@ public class HanyangSEExternalSort implements ExternalSort {
                 DataInputStream DataStream = new DataInputStream(buffStream);
                 files.add(DataStream);
                 cnt++;
-                if (cnt == nblocks) {
-                    n_way_merge(files, tmpDir, String.valueOf(step), String.valueOf(runNum));
+                if (cnt == nblocks - 1) {
+                    n_way_merge(files, tmpDir, String.valueOf(step), String.valueOf(runNum), blocksize);
                     runNum++;
                     files.clear();
                     cnt = 0;
                 }
             }
-            if (!files.isEmpty()) n_way_merge(files, tmpDir, String.valueOf(step), String.valueOf(runNum));
+            if (!files.isEmpty()) n_way_merge(files, tmpDir, String.valueOf(step), String.valueOf(runNum), blocksize);
             _externalMergeSort(tmpDir, outputFile, step + 1, nblocks, blocksize);
         }
     }
 
-    public void n_way_merge(List<DataInputStream> files, String outputFile, String step, String runNum) throws IOException {
+    public void n_way_merge(List<DataInputStream> files, String outputFile, String step, String runNum, int blocksize) throws IOException {
         ArrayList<MutableTriple<Integer, Integer, Integer>> outputbuf = new ArrayList<>();
         PriorityQueue<DataManager> queue = new PriorityQueue<DataManager>(files.size(), new Comparator<DataManager>() {
             public int compare(DataManager o1, DataManager o2) {
@@ -119,11 +119,16 @@ public class HanyangSEExternalSort implements ExternalSort {
         }
         while(queue.size()!=0){
             DataManager dm = queue.poll();
-            MutableTriple<Integer, Integer, Integer> data = new MutableTriple<>();
-            dm.getTuple(data);
-            outputbuf.add(data);
+            MutableTriple<Integer, Integer, Integer> data = dm.getTuple();
+            if (data != null) {
+                outputbuf.add(data);
+                queue.offer(dm);
+            }
+            if (outputbuf.size() == blocksize / 12) {
+                makeFile(outputFile, step, runNum, outputbuf);
+            }
         }
-        makeFile(outputFile, step, runNum, outputbuf);
+        if (!outputbuf.isEmpty()) { makeFile(outputFile, step, runNum, outputbuf); }
     }
 
     public static void makeFile(String path, String step, String runNum, ArrayList<MutableTriple<Integer, Integer, Integer>> tupArr) {
