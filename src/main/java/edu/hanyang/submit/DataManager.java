@@ -17,11 +17,14 @@ class DataManager {
     }
 
     private boolean readNext() throws IOException {
-        if (isEOF) return false;
-        tuple.setLeft(dis.readInt());
-        tuple.setMiddle(dis.readInt());
-        tuple.setRight(dis.readInt());
-        return true;
+        try {
+            tuple.setLeft(dis.readInt());
+            tuple.setMiddle(dis.readInt());
+            tuple.setRight(dis.readInt());
+            return true;
+        } catch ( Exception e ) {
+            return false;
+        }
     }
 
     public void getTuple(MutableTriple<Integer, Integer, Integer> ret) throws IOException {
@@ -29,6 +32,16 @@ class DataManager {
         ret.setMiddle(tuple.getMiddle());
         ret.setRight(tuple.getRight());
         isEOF = (!readNext());
+    }
+
+    public MutableTriple<Integer, Integer, Integer> getTuple() throws IOException {
+        if (!isEOF) {
+            MutableTriple<Integer, Integer, Integer> tmp = tuple;
+            isEOF = (!readNext());
+            return tmp;
+        }
+        else
+            return null;
     }
 
     public int compare(DataManager o1, DataManager o2) {
