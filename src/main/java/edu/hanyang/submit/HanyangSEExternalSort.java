@@ -7,7 +7,6 @@ import java.util.*;
 
 import io.github.hyerica_bdml.indexer.ExternalSort;
 import org.apache.commons.lang3.tuple.MutableTriple;
-import scala.Mutable;
 
 
 public class HanyangSEExternalSort implements ExternalSort {
@@ -20,15 +19,6 @@ public class HanyangSEExternalSort implements ExternalSort {
      * @param nblocks   Available block numbers in the main memory of the current system
      * @throws IOException  Exception while performing external sort
      */
-
-    /*
-     * 테스함수에서는 infile에 data의 경로
-     * outfile에 결과파일의 이름과 저장할 경로
-     * tmpdir에는 "tmp/"
-     * blocksize에는 한 블럭의 메모리크기(1024*8) => buf size : 1024*8
-     * nblocks에는 (1000) => 999 - way merge
-     * 14649개 block 있음
-     */
     @Override
     public void sort(String infile, String outfile, String tmpdir, int blocksize, int nblocks) throws IOException {
         // TODO: your code here...
@@ -36,13 +26,7 @@ public class HanyangSEExternalSort implements ExternalSort {
         //1)initial phase
         ArrayList<MutableTriple<Integer, Integer, Integer>> dataArr = new ArrayList<>();
 
-        // 512 * 3 *
-        // 512 * 3 * 4 -> 13
-        // 512 * 3 * 4  = 60 -> 14.xx
-        // 512 * 3 * 5 = 7680 -> 13.xx
-        // 512 * 3 * 6 = 9216 -> 13
-        // 512 * 3 * 7 = 10752 -> 15.xx
-        int buffer = (blocksize*12)/4;
+        int buffer = (blocksize*9)/4;
         int termId, docId, pos;
         int runNum = 0;
 
@@ -70,6 +54,14 @@ public class HanyangSEExternalSort implements ExternalSort {
                 }
             }
             catch(EOFException e){
+                Collections.sort(dataArr);
+                // dataArr => tmp run0.[]
+                DataOutputStream outputStream = makeOutputStream(tmpdir, String.valueOf(0), String.valueOf(runNum));
+                writeFile(outputStream, dataArr);
+
+                outputStream.close();
+                dataArr.clear();
+
                 System.out.println("initialization done.");
                 inputStream.close();
                 //2) n-way merge
@@ -78,7 +70,6 @@ public class HanyangSEExternalSort implements ExternalSort {
         }
         catch(Exception e){
             System.out.println("no read file.");
-
         }
     }
 
@@ -90,15 +81,13 @@ public class HanyangSEExternalSort implements ExternalSort {
         int cnt = 0;
         if (fileArr.length <= nblocks-1) {
             for (File f : fileArr) {
-                DataInputStream DataStream = new DataInputStream(new BufferedInputStream(new FileInputStream(f)));
-                files.add(DataStream);
+                files.add(new DataInputStream(new BufferedInputStream(new FileInputStream(f))));
 
             }
             n_way_merge(files, outputFile, "", "", blocksize);
         } else {
             for (File f : fileArr) {
-                DataInputStream DataStream = new DataInputStream(new BufferedInputStream(new FileInputStream(f)));
-                files.add(DataStream);
+                files.add( new DataInputStream(new BufferedInputStream(new FileInputStream(f))));
                 cnt++;
                 if (cnt == nblocks-1) {
                     n_way_merge(files, tmpDir, String.valueOf(step), String.valueOf(runNum), blocksize);
@@ -108,6 +97,10 @@ public class HanyangSEExternalSort implements ExternalSort {
                 }
             }
             if(!files.isEmpty()) n_way_merge(files, tmpDir, String.valueOf(step), String.valueOf(runNum), blocksize);
+            for(DataInputStream inputStrm : files){
+                inputStrm.close();
+                inputStrm = null;
+            }
             _externalMergeSort(tmpDir, outputFile, step+1, nblocks, blocksize);
         }
     }
@@ -132,6 +125,9 @@ public class HanyangSEExternalSort implements ExternalSort {
             outputbuf.add(data);
             if(!dm.isEOF) {
                 queue.add(dm);
+            }
+            else{
+                dm.closeStream();
             }
             if (outputbuf.size() >= blocksize / 12) {
                 writeFile(outputStream, outputbuf);
