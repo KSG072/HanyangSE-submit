@@ -34,17 +34,7 @@ class DataManager {
         isEOF = (!readNext());
     }
 
-//    public MutableTriple<Integer, Integer, Integer> getTuple() throws IOException {
-//        if (!isEOF) {
-//            MutableTriple<Integer, Integer, Integer> tmp = tuple;
-//            isEOF = (!readNext());
-//            return tmp;
-//        }
-//        else
-//            return null;
-//    }
-
-    public int compare(DataManager o1, DataManager o2) {
-        return o1.tuple.compareTo(o2.tuple);
+    public void closeStream() throws IOException{
+        this.dis.close();
     }
 }
