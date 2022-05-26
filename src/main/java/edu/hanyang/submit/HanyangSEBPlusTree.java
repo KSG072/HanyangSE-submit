@@ -43,7 +43,7 @@ public class HanyangSEBPlusTree implements BPlusTree {
     @Override
     public void insert(int key, int value) throws IOException {
         // TODO: your code here...
-        Block block = searchNode(key);
+        Block block = search(key);
 
         if(block.nkeys + 1 > maxKeys){
             Block newnode = split(block, key, value);
