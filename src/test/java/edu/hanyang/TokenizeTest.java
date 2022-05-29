@@ -40,7 +40,6 @@ public class TokenizeTest {
         testSentences.add("I read this book the other day and found it very interesting, so I will give it to you.");
         testSentences.add("The test email - mail@javacodegeeks.com");
         testSentences.add("Won't you go to that island with me if it is fine tomorrow afternoon? It takes about an hour by boat.");
-
     }
 
     @Test

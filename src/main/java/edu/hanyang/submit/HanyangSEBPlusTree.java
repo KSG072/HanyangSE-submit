@@ -5,6 +5,7 @@ import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 
+
 import io.github.hyerica_bdml.indexer.BPlusTree;
 import scala.util.control.Exception;
 
@@ -34,7 +35,6 @@ public class HanyangSEBPlusTree implements BPlusTree {
         this.maxKeys = (blocksize - 16) / 8;
 
         raf = new RandomAccessFile(treefile, "rw");
-//        mata = new RandomAccessFile(matafile, "rw");
     }
 
     /**
@@ -144,6 +144,20 @@ public class HanyangSEBPlusTree implements BPlusTree {
         Block rb = readBlock(rootindex);
         return _search(rb, key);
     }
+    private int _search(Block b, int key) throws IOException{
+        if(b.type == 1) {// non-leaf
+            // TODO: your code here...
+            if(block.keys[i] < key){
+                child = readBlock(b.vals[i]);
+            }
+            //TODO: your code here...
+        }
+        else{ // Leaf
+            /* binary or linear search */
+            // if exists
+            return val;
+            // else
+            return -1;
 
     private int _search(Block b, int key) throws IOException{
         if(b.type == 1) {// non-leaf
