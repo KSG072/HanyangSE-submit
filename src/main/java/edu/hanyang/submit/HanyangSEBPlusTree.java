@@ -94,17 +94,17 @@ public class HanyangSEBPlusTree implements BPlusTree {
         {
             raf.seek(rb.parent);  // 부모로 감
             int pos = raf.readInt(); // 자식꺼 얻어옴
-            raf.seek(pos + 12); // rb의 첫번째 key의 pointer
+            raf.seek(pos + 3); // rb의 첫번째 key의 pointer
             for(int i=0; i<rb.nkeys;i++) // key 비교
             {
                 if(key < raf.readInt()) // 비교대상보다 작거나
                 {
-                    raf.seek(pos + 12 + maxKeys* 4L + 4L*i); // rb의 첫번째 value 의 pointer
+                    raf.seek(pos + 3 + maxKeys + i); // rb의 첫번째 value 의 pointer
                     rb = readBlock(raf.readInt());
                     break;
                 }
                 if(i == rb.nkeys -1) { // 비교대상이 없으면
-                    raf.seek(pos + blocksize - 4); //rb의 마지막 value
+                    raf.seek(pos + blocksize/4 - 4); //rb의 마지막 value
                     rb = readBlock(raf.readInt());
                     break;
                 }
