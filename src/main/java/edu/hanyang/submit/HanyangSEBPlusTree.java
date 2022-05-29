@@ -90,24 +90,22 @@ public class HanyangSEBPlusTree implements BPlusTree {
     {
         Block rb = readBlock(rootindex); // root block
 
-        buf = new byte[4];
-
         while(rb.type != 0) //leaf 일때 종료
         {
             raf.seek(rb.parent);  // 부모로 감
-            int pos = raf.read(buf); // 자식꺼 얻어옴
+            int pos = raf.readInt(); // 자식꺼 얻어옴
             raf.seek(pos + 12); // rb의 첫번째 key의 pointer
             for(int i=0; i<rb.nkeys;i++) // key 비교
             {
-                if(key < raf.read(buf)) // 비교대상보다 작거나
+                if(key < raf.readInt()) // 비교대상보다 작거나
                 {
                     raf.seek(pos + 12 + maxKeys* 4L + 4L*i); // rb의 첫번째 value 의 pointer
-                    rb = readBlock(raf.read(buf));
+                    rb = readBlock(raf.readInt());
                     break;
                 }
                 if(i == rb.nkeys -1) { // 비교대상이 없으면
                     raf.seek(pos + blocksize - 4); //rb의 마지막 value
-                    rb = readBlock(raf.read(buf));
+                    rb = readBlock(raf.readInt());
                     break;
                 }
             }
