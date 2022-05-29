@@ -143,6 +143,7 @@ public class HanyangSEBPlusTree implements BPlusTree {
         기존 블락 : 앞에서 절반
         새로운 블락 : 나머지
          */
+        // TODO: fill here...
         int[] tmp = new int[maxKeys];
         System.arraycopy(block.keys, 0, tmp, 0, maxKeys);
         tmp[maxKeys] = key;
@@ -151,7 +152,7 @@ public class HanyangSEBPlusTree implements BPlusTree {
     }
 
     public void insertInternal(Block parent, int pos){
-
+        // TODO: fill here...
     }
 
 
@@ -173,7 +174,6 @@ public class HanyangSEBPlusTree implements BPlusTree {
         if (b.type == 1) {// non-leaf
             Block child;
             int i;
-            // TODO: your code here...
             for(i=0; i<b.nkeys; i++){
                 if (b.keys[i] < key) {
                     child = readBlock(b.vals[i]);
@@ -182,7 +182,6 @@ public class HanyangSEBPlusTree implements BPlusTree {
             }
             child = readBlock(b.vals[i]);
             return _search(child, key);
-            //TODO: your code here...
         } else { // Leaf
             /* binary search */
             return binaryKeySearch(b.keys, b.vals, key, b.nkeys);
@@ -216,11 +215,10 @@ public class HanyangSEBPlusTree implements BPlusTree {
      */
 
     @Override
-    public void close () throws IOException {
-        // TODO: your code here...
+    public void close (){
         try {
             raf.close();
-        } catch (Exception e) {
+        } catch (IOException e) {
             System.out.println(e);
         }
     }
