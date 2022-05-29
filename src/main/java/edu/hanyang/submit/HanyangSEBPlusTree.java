@@ -16,6 +16,7 @@ public class HanyangSEBPlusTree implements BPlusTree {
     private byte[] buf;
     private ByteBuffer buffer;
     private int maxKeys;
+    private int rootindex;
     private RandomAccessFile raf;
     /**
      * B+ tree를 open하는 함수(파일을 열고 준비하는 단계 구현)
@@ -33,8 +34,10 @@ public class HanyangSEBPlusTree implements BPlusTree {
         this.buf = new byte[blocksize];
         this.buffer = ByteBuffer.wrap(buf);
         this.maxKeys = (blocksize - 16) / 8;
+        this.rootindex = 0;
 
         raf = new RandomAccessFile(treefile, "rw");
+//        mata = new RandomAccessFile(matafile, "rw");
     }
 
     /**
@@ -52,11 +55,12 @@ public class HanyangSEBPlusTree implements BPlusTree {
             Block block = new Block(maxKeys);
             block.nkeys = 1;
             block.type = 0;
-            block.my_pos = 0;
+            block.parent = 0;
             block.vals[0] = value;
             block.keys[0] = key;
 
-            buffer.putInt(0,block.my_pos);
+            buffer.putInt(0,block.parent);
+          
             buffer.putInt(1,block.type);
             buffer.putInt(2,block.nkeys);
             buffer.putInt(3,key);
@@ -70,19 +74,18 @@ public class HanyangSEBPlusTree implements BPlusTree {
 
         if(block.nkeys + 1 > maxKeys){
             Block newnode = split(block, key, value);
-            insertInternal(block.parent, newnode.my_pos);
+            insertInternal(readBlock(block.parent), newnode.parent);
         }
         else{
             // TODO: your code here...
             block.nkeys++;
-            raf.seek(block.my_pos + 12 + (8L * block.nkeys));
+            raf.seek(block.parent + 12 + (8L * block.nkeys));
             raf.write(key);
             raf.write(value);
 
         }
     }
 
-    
     public Block searchNode(int key) throws IOException
     {
         Block rb = readBlock(rootindex); // root block
@@ -91,7 +94,7 @@ public class HanyangSEBPlusTree implements BPlusTree {
 
         while(rb.type != 0) //leaf 일때 종료
         {
-            raf.seek(rb.my_pos);  // 부모로 감
+            raf.seek(rb.parent);  // 부모로 감
             int pos = raf.read(buf); // 자식꺼 얻어옴
             raf.seek(pos + 12); // rb의 첫번째 key의 pointer
             for(int i=0; i<rb.nkeys;i++) // key 비교
@@ -110,6 +113,30 @@ public class HanyangSEBPlusTree implements BPlusTree {
             }
         }
         return rb;
+    }
+
+    private Block readBlock(int index) throws IOException{
+        int parent, type, nkeys;
+
+        raf.seek(index);
+
+        parent = raf.readInt();
+        type = raf.readInt();
+        nkeys = raf.readInt();
+
+        Block b = new Block(parent, type, nkeys, maxKeys);
+
+        for(int i=0; i<nkeys; i++){
+            b.keys[i] = raf.readInt();
+        }
+
+        raf.seek(raf.getFilePointer() + (maxKeys-nkeys));
+
+        for(int i=0; i<nkeys+1; i++){
+            b.vals[i] = raf.readInt();
+        }
+
+        return b;
     }
 
     public Block split(Block block, int key, int value){
@@ -144,37 +171,22 @@ public class HanyangSEBPlusTree implements BPlusTree {
         Block rb = readBlock(rootindex);
         return _search(rb, key);
     }
-    private int _search(Block b, int key) throws IOException{
-        if(b.type == 1) {// non-leaf
+
+    private int _search(Block b, int key) throws IOException {
+        if (b.type == 1) {// non-leaf
             // TODO: your code here...
-            if(block.keys[i] < key){
+            if (block.keys[i] < key) {
                 child = readBlock(b.vals[i]);
             }
             //TODO: your code here...
-        }
-        else{ // Leaf
+        } else { // Leaf
             /* binary or linear search */
             // if exists
             return val;
             // else
             return -1;
-
-    private int _search(Block b, int key) throws IOException{
-        if(b.type == 1) {// non-leaf
-            // TODO: your code here...
-            if(block.keys[i] < key){
-                child = readBlock(b.vals[i]);
-            }
-            //TODO: your code here...
         }
-        else{ // Leaf
-            /* binary or linear search */
-            // if exists
-            return val;
-            // else
-            return -1;
-
-        }
+    }
 
     /*
      * B+ tree를 닫는 함수, 열린 파일을 닫고 저장하는 단계
@@ -182,13 +194,12 @@ public class HanyangSEBPlusTree implements BPlusTree {
      */
 
     @Override
-    public void close() throws IOException {
+    public void close () throws IOException {
         // TODO: your code here...
-            try{
-                raf.close();
-            }
-            catch(Exception e){
-                System.out.println(e);
-            }
+        try {
+            raf.close();
+        } catch (Exception e) {
+            System.out.println(e);
+        }
     }
 }
