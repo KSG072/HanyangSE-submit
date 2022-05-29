@@ -52,15 +52,10 @@ public class HanyangSEBPlusTree implements BPlusTree {
 
         if (raf.length() == 0)
         { // 처음 넣을 때 block 생성
-            Block block = new Block(maxKeys);
-            block.nkeys = 1;
-            block.type = 0;
-            block.parent = 0;
-            block.vals[0] = value;
-            block.keys[0] = key;
+            Block block = new Block(0,0,1,maxKeys);
+            block.addKey(key, value);
 
             buffer.putInt(0,block.parent);
-          
             buffer.putInt(1,block.type);
             buffer.putInt(2,block.nkeys);
             buffer.putInt(3,key);
@@ -85,6 +80,7 @@ public class HanyangSEBPlusTree implements BPlusTree {
 
         }
     }
+//    private void writeBlock(int) 만들어야함
 
     public Block searchNode(int key) throws IOException
     {
