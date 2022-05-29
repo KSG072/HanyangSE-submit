@@ -133,7 +133,6 @@ public class HanyangSEBPlusTree implements BPlusTree {
         for(int i=0; i<nkeys+1; i++){
             b.vals[i] = raf.readInt();
         }
-
         return b;
     }
 
@@ -172,18 +171,43 @@ public class HanyangSEBPlusTree implements BPlusTree {
 
     private int _search(Block b, int key) throws IOException {
         if (b.type == 1) {// non-leaf
+            Block child;
+            int i;
             // TODO: your code here...
-            if (block.keys[i] < key) {
-                child = readBlock(b.vals[i]);
+            for(i=0; i<b.nkeys; i++){
+                if (b.keys[i] < key) {
+                    child = readBlock(b.vals[i]);
+                    return _search(child, key);
+                }
             }
+            child = readBlock(b.vals[i]);
+            return _search(child, key);
             //TODO: your code here...
         } else { // Leaf
-            /* binary or linear search */
-            // if exists
-            return val;
-            // else
-            return -1;
+            /* binary search */
+            return binaryKeySearch(b.keys, b.vals, key, b.nkeys);
+            // if do not exist, return -1
         }
+    }
+
+    private int binaryKeySearch(int[] keys, int[] vals, int key, int nkeys) {
+        int left = 0, right = nkeys-1;
+        int pivot = nkeys/2;
+
+        while(right <= left){
+            if(keys[pivot] < key){
+                right = pivot + 1;
+                pivot = (left + right)/2;
+            }
+            else if(keys[pivot] > key){
+                left = pivot - 1;
+                pivot = (left + right)/2;
+            }
+            else if(keys[pivot] == key){
+                return vals[pivot];
+            }
+        }
+        return -1;
     }
 
     /*
