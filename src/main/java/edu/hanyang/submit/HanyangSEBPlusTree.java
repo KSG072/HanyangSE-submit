@@ -3,8 +3,11 @@ package edu.hanyang.submit;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
+import java.util.Arrays;
+
 
 import io.github.hyerica_bdml.indexer.BPlusTree;
+import scala.util.control.Exception;
 
 
 public class HanyangSEBPlusTree implements BPlusTree {
@@ -57,6 +60,7 @@ public class HanyangSEBPlusTree implements BPlusTree {
             block.keys[0] = key;
 
             buffer.putInt(0,block.parent);
+          
             buffer.putInt(1,block.type);
             buffer.putInt(2,block.nkeys);
             buffer.putInt(3,key);
@@ -81,7 +85,6 @@ public class HanyangSEBPlusTree implements BPlusTree {
 
         }
     }
-
 
     public Block searchNode(int key) throws IOException
     {
@@ -184,7 +187,6 @@ public class HanyangSEBPlusTree implements BPlusTree {
             return -1;
         }
     }
-
 
     /*
      * B+ tree를 닫는 함수, 열린 파일을 닫고 저장하는 단계

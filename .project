@@ -22,7 +22,11 @@
 	</natures>
 	<filteredResources>
 		<filter>
+<<<<<<< HEAD
+			<id>1653801363323</id>
+=======
 			<id>1649907838759</id>
+>>>>>>> upstream/master
 			<name></name>
 			<type>30</type>
 			<matcher>
