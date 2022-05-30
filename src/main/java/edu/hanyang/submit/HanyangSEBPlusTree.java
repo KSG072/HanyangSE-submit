@@ -52,10 +52,10 @@ public class HanyangSEBPlusTree implements BPlusTree {
 
         if (raf.length() == 0)
         { // 처음 넣을 때 block 생성
-            Block block = new Block(0,0,1,maxKeys);
+            Block block = new Block(-1,0,1,maxKeys);
             block.addKey(key, value);
 
-            buffer.putInt(0,block.parent);
+            buffer.putLong(0,block.parent);
             buffer.putInt(1,block.type);
             buffer.putInt(2,block.nkeys);
             buffer.putInt(3,key);
@@ -65,24 +65,101 @@ public class HanyangSEBPlusTree implements BPlusTree {
 
         }
 
-        Block block = searchNode(key);
+        Block block = searchNode(key); // insert 할 block
 
-        if(block.nkeys + 1 > maxKeys){
+        if(block.nkeys + 1 > maxKeys){ // 넘쳤을 때
             Block newnode = split(block, key, value);
             insertInternal(readBlock(block.parent), newnode.parent);
         }
         else{
             // TODO: your code here...
-            block.nkeys++;
-            raf.seek(block.parent + 12 + (8L * block.nkeys));
-            raf.write(key);
-            raf.write(value);
-
+            block.addKey(key, value);
         }
     }
 //    private void writeBlock(int) 만들어야함
 
-    public Block searchNode(int key) throws IOException
+    private Block split(Block block, int key, int value) throws IOException {
+        /*
+        기존 블락 + 새로운거
+        => sort
+        기존 블락 : 앞에서 절반
+        새로운 블락 : 나머지
+         */
+        // TODO: fill here...
+
+        raf.seek(block.parent);
+        int blockPos = raf.readInt(); // 참조 block 의 시작 pointer
+
+        Block newBlock = new Block(-2, 0, 0,maxKeys); // Parent값 의미x
+
+        int mid = (int) Math.ceil((float)maxKeys/2);
+
+        for(int i=0; i<maxKeys;i++)
+        {
+            // 넣어주고 반으로
+            if(key < block.keys[i] )
+            {
+                for(int j=0; j < maxKeys+1 - mid; j++)
+                { // newBlock 에 나머지 keys, vals 복제
+                    newBlock.keys[j] = block.keys[mid -1 + j];
+                    newBlock.vals[j] = block.vals[mid -1 + j];
+                }
+
+                writeBlock(newBlock); // raf에 new Block create
+                //newBlock 완성
+
+                for(int j=0; j < mid - i; j++)
+                { // block에 key 보다 큰 기존key들 한칸씩 뒤로 옮김
+                    block.keys[i + j + 1] = block.keys[i + j];
+                    block.vals[i + j + 1] = block.vals[i + j];
+                }
+                // key insert
+                block.keys[i] = key;
+                block.vals[i] = value;
+
+                // block 완성
+            }
+            else // 그냥 반 짤라서 block 으로 하고 나머지 newBlock
+            {
+                for(int j=0; j < i-mid ; j++)
+                { // newBlock에 key보다 작은 기존 key,val 복제
+                    newBlock.keys[j] = block.keys[mid + j];
+                    newBlock.vals[j] = block.vals[mid + j];
+                }
+                // key insert
+                newBlock.keys[i - mid] = key;
+                newBlock.vals[i - mid] = value;
+
+                for(int j=0; j < maxKeys - i; j++)
+                { // 나머지 복제
+                    newBlock.keys[i + j - mid] = block.keys[i + j];
+                    newBlock.vals[i + j - mid] = block.vals[i + j];
+                }
+                // newBlock 완성
+
+            }
+        }
+
+        /*
+        공통적으로 할 일
+        nkeys 변경
+        다음 block pointer 변경
+         */
+        block.nkeys = mid;
+        newBlock.nkeys = maxKeys + 1 - mid;
+
+        newBlock.vals[maxKeys+1] = block.vals[maxKeys+1]; // newBlock 다음 block pointer =  기존의 다음 block pointer
+        block.vals[maxKeys+1] = (int)(raf.length() + 1); // block 마지막 pointer = newBlock pointer
+
+        return newBlock;
+    }
+
+    public void insertInternal(Block parent, int pos){
+        // TODO: fill here...
+    }
+
+
+    private Block searchNode(int key) throws IOException
     {
         Block rb = readBlock(rootindex); // root block
 
@@ -90,17 +167,17 @@ public class HanyangSEBPlusTree implements BPlusTree {
         {
             raf.seek(rb.parent);  // 부모로 감
             int pos = raf.readInt(); // 자식꺼 얻어옴
-            raf.seek(pos + 12); // rb의 첫번째 key의 pointer
+            raf.seek(pos + 3); // rb의 첫번째 key의 pointer
             for(int i=0; i<rb.nkeys;i++) // key 비교
             {
                 if(key < raf.readInt()) // 비교대상보다 작거나
                 {
-                    raf.seek(pos + 12 + maxKeys* 4L + 4L*i); // rb의 첫번째 value 의 pointer
+                    raf.seek(pos + 3 + maxKeys + i); // rb의 첫번째 value 의 pointer
                     rb = readBlock(raf.readInt());
                     break;
                 }
                 if(i == rb.nkeys -1) { // 비교대상이 없으면
-                    raf.seek(pos + blocksize - 4); //rb의 마지막 value
+                    raf.seek(pos + blocksize/4 - 1); //rb의 마지막 value
                     rb = readBlock(raf.readInt());
                     break;
                 }
@@ -131,26 +208,6 @@ public class HanyangSEBPlusTree implements BPlusTree {
         }
         return b;
     }
-
-    public Block split(Block block, int key, int value){
-        /*
-        기존 블락 + 새로운거
-        => sort
-        기존 블락 : 앞에서 절반
-        새로운 블락 : 나머지
-         */
-        // TODO: fill here...
-        int[] tmp = new int[maxKeys];
-        System.arraycopy(block.keys, 0, tmp, 0, maxKeys);
-        tmp[maxKeys] = key;
-        Arrays.sort(tmp);
-        return null;
-    }
-
-    public void insertInternal(Block parent, int pos){
-        // TODO: fill here...
-    }
-
 
 
     /**
