@@ -188,6 +188,7 @@ public class HanyangSEBPlusTree implements BPlusTree {
             // TODO: your code here...
             block.addKey(key, value);
         }
+//        raf.writeBlock(parent);
     }
 
 
