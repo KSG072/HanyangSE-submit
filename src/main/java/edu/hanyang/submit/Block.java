@@ -4,7 +4,7 @@ public class Block {
     public int parent=0;
     public int type = 0; //1 is non-leaf, 0 is leaf
     public int nkeys = 0;
-    private int max;
+    public int max;
     public int[] keys;
     public int[] vals;
 
@@ -13,7 +13,7 @@ public class Block {
         this.keys = new int[maxKeys];
         this.vals = new int[maxKeys+1];
     }
-    public Block(long p, int t, int n, int maxKeys){
+    public Block(int p, int t, int n, int maxKeys){
         this.parent = p;
         this.type = t;
         this.nkeys = n;
