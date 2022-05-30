@@ -54,29 +54,23 @@ public class HanyangSEBPlusTree implements BPlusTree {
         { // 처음 넣을 때 block 생성
             Block block = new Block(-1,0,1,maxKeys);
             block.addKey(key, value);
-
-            buffer.putLong(0,block.parent);
-            buffer.putInt(1,block.type);
-            buffer.putInt(2,block.nkeys);
-            buffer.putInt(3,key);
-            buffer.putInt(4 + maxKeys, value);
-
-            raf.write(buf);
-
+            writeBlock(block, 0);
         }
+        else {
+            Block block = searchNode(key); // insert 할 block
 
-        Block block = searchNode(key); // insert 할 block
+            if (block.nkeys + 1 > maxKeys) { // 넘쳤을 때
+                Block newnode = split(block, key, value);
+                insertInternal(block, newnode);
+            } else {
+                // TODO: your code here...
+                block.addKey(key, value);
+                raf.seek(block.parent);
 
-        if(block.nkeys + 1 > maxKeys){ // 넘쳤을 때
-            Block newnode = split(block, key, value);
-            insertInternal(block.parent, newnode.parent);
-        }
-        else{
-            // TODO: your code here...
-            block.addKey(key, value);
+                writeBlock(block, 1);
+            }
         }
     }
-//    private void writeBlock(int) 만들어야함
 
     /*
      * 꽉찬 블록을 나누어주는 함수
@@ -112,8 +106,8 @@ public class HanyangSEBPlusTree implements BPlusTree {
                     newBlock.keys[j] = block.keys[mid -1 + j];
                     newBlock.vals[j] = block.vals[mid -1 + j];
                 }
-
-                writeBlock(newBlock); // raf에 new Block create
+                raf.seek(raf.length());
+                writeBlock(newBlock, 0); // raf에 new Block create
                 //newBlock 완성
 
                 for(int j=0; j < mid - i; j++)
@@ -124,7 +118,6 @@ public class HanyangSEBPlusTree implements BPlusTree {
                 // key insert
                 block.keys[i] = key;
                 block.vals[i] = value;
-
                 // block 완성
             }
             else // 그냥 반 짤라서 block 으로 하고 나머지 newBlock
@@ -162,17 +155,20 @@ public class HanyangSEBPlusTree implements BPlusTree {
         return newBlock;
     }
 
-    private void writeBlock(Block b) throws IOException{
+    private void writeBlock(Block b, int mode) throws IOException{
         int blockPointer;
         if(b.parent >= 0){
             raf.seek(b.parent);
             blockPointer = raf.readInt();
         }
-        else{
+        else if(mode == 1) {//over write
             raf.seek(rootindex);
             blockPointer = raf.readInt();
+            raf.seek(blockPointer);
         }
-        raf.seek(blockPointer);
+        else{//new write
+            raf.seek(raf.length());
+        }
 
         raf.writeInt(b.parent);
         raf.writeInt(b.type);
@@ -195,7 +191,7 @@ public class HanyangSEBPlusTree implements BPlusTree {
      * @param pos    새로운 블록의 부모를 가리키는 포인터의 위치
      * @throws IOException
      */
-    public void insertInternal(int parent, int pos) throws IOException {
+    public void insertInternal(Block block, Block newBlock) throws IOException {
         // TODO: fill here...
         raf.seek(pos);
         int value = (int) raf.getFilePointer(); // 새로운 블록의 위치 저장
