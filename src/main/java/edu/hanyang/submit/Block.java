@@ -1,10 +1,10 @@
 package edu.hanyang.submit;
 
 public class Block {
-    public long parent=0;
+    public int parent=0;
     public int type = 0; //1 is non-leaf, 0 is leaf
     public int nkeys = 0;
-    private int max;
+    public int max;
     public int[] keys;
     public int[] vals;
 

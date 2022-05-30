@@ -154,6 +154,32 @@ public class HanyangSEBPlusTree implements BPlusTree {
         return newBlock;
     }
 
+    private void writeBlock(Block b) throws IOException{
+        int blockPointer;
+        if(b.parent >= 0){
+            raf.seek(b.parent);
+            blockPointer = raf.readInt();
+        }
+        else{
+            raf.seek(rootindex);
+            blockPointer = raf.readInt();
+        }
+        raf.seek(blockPointer);
+
+        raf.writeInt(b.parent);
+        raf.writeInt(b.type);
+        raf.writeInt(b.nkeys);
+
+        for(int i=0; i<b.nkeys; i++) {
+            raf.writeInt(b.keys[i]);
+        } for(int i=0; i<b.max-b.nkeys; i++) raf.writeInt(-2);
+
+        for(int i=0; i<b.nkeys+1; i++) {
+            raf.writeInt(b.vals[i]);
+        } for(int i=0; i<b.max-b.nkeys+1; i++) raf.writeInt(-2);
+
+    }
+
     public void insertInternal(Block parent, int pos){
         // TODO: fill here...
     }
@@ -201,7 +227,7 @@ public class HanyangSEBPlusTree implements BPlusTree {
             b.keys[i] = raf.readInt();
         }
 
-        raf.seek(raf.getFilePointer() + (maxKeys-nkeys));
+        raf.seek(raf.getFilePointer() + 4L *(b.max-b.nkeys));
 
         for(int i=0; i<nkeys+1; i++){
             b.vals[i] = raf.readInt();
