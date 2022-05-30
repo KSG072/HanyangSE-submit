@@ -88,7 +88,6 @@ public class HanyangSEBPlusTree implements BPlusTree {
         새로운 블락 : 나머지
          */
         // TODO: fill here...
-
         raf.seek(block.parent);
         int blockPos = raf.readInt(); // 참조 block 의 시작 pointer
 
@@ -96,61 +95,170 @@ public class HanyangSEBPlusTree implements BPlusTree {
 
         int mid = (int) Math.ceil((float)maxKeys/2);
 
-        for(int i=0; i<maxKeys;i++)
-        {
-            // 넣어주고 반으로
-            if(key < block.keys[i] )
+        if(block.type == 0) {
+            for (int i = 0; i < maxKeys; i++)
             {
-                for(int j=0; j < maxKeys+1 - mid; j++)
-                { // newBlock 에 나머지 keys, vals 복제
-                    newBlock.keys[j] = block.keys[mid -1 + j];
-                    newBlock.vals[j] = block.vals[mid -1 + j];
-                }
-                raf.seek(raf.length());
-                writeBlock(newBlock, 0); // raf에 new Block create
-                //newBlock 완성
+                if (key < block.keys[i])
+                { // 넣어주고 반으로 짤름
+                    if(i < mid)
+                    {
+                        for (int j = 0; j < maxKeys + 1 - mid; j++)
+                        { // newBlock 에 나머지 keys, vals 복제
+                            newBlock.keys[j] = block.keys[mid - 1 + j];
+                            newBlock.vals[j] = block.vals[mid - 1 + j];
+                        }
+                        raf.seek(raf.length() * 4);
+                        writeBlock(newBlock, 0); // raf에 new Block create
+                        //newBlock 완성
 
-                for(int j=0; j < mid - i; j++)
-                { // block에 key 보다 큰 기존key들 한칸씩 뒤로 옮김
-                    block.keys[i + j + 1] = block.keys[i + j];
-                    block.vals[i + j + 1] = block.vals[i + j];
+                        for (int j = 0; j < mid - i; j++)
+                        { // block에 key 보다 큰 기존key들 한칸씩 뒤로 옮김
+                            block.keys[i + j + 1] = block.keys[i + j];
+                            block.vals[i + j + 1] = block.vals[i + j];
+                        }
+                        // key insert
+                        block.keys[i] = key;
+                        block.vals[i] = value;
+                        // block 완성
+                    }
+                    else
+                    { // 그냥 반 짤라서 block 으로 하고 나머지 newBlock
+                        {
+                            for (int j = 0; j < i - mid; j++)
+                            { // newBlock에 key보다 작은 기존 key,val 복제
+                                newBlock.keys[j] = block.keys[mid + j];
+                                newBlock.vals[j] = block.vals[mid + j];
+                            }
+                            // key insert
+                            newBlock.keys[i - mid] = key;
+                            newBlock.vals[i - mid] = value;
+
+                            for (int j = 0; j < maxKeys - i; j++)
+                            { // 나머지 복제
+                                newBlock.keys[i + j - mid] = block.keys[i + j];
+                                newBlock.vals[i + j - mid] = block.vals[i + j];
+                            }
+                            writeBlock(newBlock, 0); // raf에 new Block create
+                            // newBlock 완성
+                        }
+                    }
+
                 }
-                // key insert
-                block.keys[i] = key;
-                block.vals[i] = value;
-                // block 완성
             }
-            else // 그냥 반 짤라서 block 으로 하고 나머지 newBlock
+            // 새로운key가 가장 클 때
+            for (int j = 0; j < maxKeys+1 - mid; j++)
+            { // newBlock에 key보다 작은 기존 key,val 복제
+                newBlock.keys[j] = block.keys[mid + j];
+                newBlock.vals[j] = block.vals[mid + j];
+            }
+            // key insert
+            newBlock.keys[maxKeys+1 - mid] = key;
+            newBlock.vals[maxKeys+1 - mid] = value;
+            writeBlock(newBlock, 0); // raf에 new Block create
+            // newBlock 완성
+
+            /*
+            공통적으로 할 일
+            nkeys 변경
+            다음 block pointer 변경
+             */
+            block.nkeys = mid;
+            newBlock.nkeys = maxKeys + 1 - mid;
+
+            newBlock.vals[maxKeys+1] = block.vals[maxKeys+1]; // newBlock 다음 block pointer =  기존의 다음 block pointer
+            block.vals[maxKeys+1] = (int)(raf.length()); // block 마지막 pointer = newBlock pointer
+        }
+        else
+        { // non leaf node
+            if( block.parent != -1)
             {
-                for(int j=0; j < i-mid ; j++)
+
+            }
+            else
+            { //root node
+                Block newRootBlock = new Block(-1, 1, 1, maxKeys);
+
+                for (int i = 0; i < maxKeys; i++)
+                {
+                    if (key < block.keys[i])
+                    { // 넣어주고 반으로 짤름
+                        if(i < mid)
+                        {
+                            for (int j = 0; j < maxKeys + 1 - mid; j++)
+                            { // newBlock 에 나머지 keys, vals 복제
+                                newBlock.keys[j] = block.keys[mid - 1 + j];
+                                newBlock.vals[j] = block.vals[mid - 1 + j];
+                            }
+                            raf.seek(raf.length() * 4);
+                            writeBlock(newBlock, 0); // raf에 new Block create
+                            //newBlock 완성
+
+                            for (int j = 0; j < mid - i - 1; j++)
+                            { // block에 key 보다 큰 기존key들 한칸씩 뒤로 옮김
+                                block.keys[i + j + 1] = block.keys[i + j];
+                                block.vals[i + j + 1] = block.vals[i + j];
+                            }
+                            // key insert
+                            block.keys[i] = key;
+                            block.vals[i] = value;
+                            block.parent = (int)raf.length();
+                            // block 완성
+
+                            newRootBlock.keys[0] = block.keys[mid];
+                            newRootBlock.vals[0] = block.vals[mid];
+                            // newRootBlock 완성
+                        }
+                        else
+                        { // 그냥 반 짤라서 block 으로 하고 나머지 newBlock
+                            {
+                                for (int j = 0; j < i - mid; j++)
+                                { // newBlock에 key보다 작은 기존 key,val 복제
+                                    newBlock.keys[j] = block.keys[mid + j];
+                                    newBlock.vals[j] = block.vals[mid + j];
+                                }
+                                // key insert
+                                newBlock.keys[i - mid] = key;
+                                newBlock.vals[i - mid] = value;
+
+                                for (int j = 0; j < maxKeys - i; j++)
+                                { // 나머지 복제
+                                    newBlock.keys[i + j - mid] = block.keys[i + j];
+                                    newBlock.vals[i + j - mid] = block.vals[i + j];
+                                }
+                                writeBlock(newBlock, 0); // raf에 new Block create
+                                // newBlock 완성
+
+                                newRootBlock.keys[0] = block.keys[mid];
+                                newRootBlock.vals[0] = block.vals[mid];
+                                // newRootBlock 완성
+                            }
+                        }
+                    }
+                }
+                // 새로운key가 가장 클 때
+                for (int j = 0; j < maxKeys+1 - mid; j++)
                 { // newBlock에 key보다 작은 기존 key,val 복제
                     newBlock.keys[j] = block.keys[mid + j];
                     newBlock.vals[j] = block.vals[mid + j];
                 }
                 // key insert
-                newBlock.keys[i - mid] = key;
-                newBlock.vals[i - mid] = value;
-
-                for(int j=0; j < maxKeys - i; j++)
-                { // 나머지 복제
-                    newBlock.keys[i + j - mid] = block.keys[i + j];
-                    newBlock.vals[i + j - mid] = block.vals[i + j];
-                }
+                newBlock.keys[maxKeys+1 - mid] = key;
+                newBlock.vals[maxKeys+1 - mid] = value;
+                writeBlock(newBlock, 0); // raf에 new Block create
                 // newBlock 완성
+
+                /*
+                공통적으로 할 일
+                nkeys 변경
+                다음 block pointer 변경
+                 */
+                block.nkeys = mid-1;
+                newBlock.nkeys = maxKeys + 1 - mid;
+                newBlock.vals[maxKeys+1] = block.vals[maxKeys+1]; // newBlock 다음 block pointer =  기존의 다음 block pointer
+                block.vals[maxKeys+1] = (int)(raf.length()); // block 마지막 pointer = newBlock pointer
 
             }
         }
-
-        /*
-        공통적으로 할 일
-        nkeys 변경
-        다음 block pointer 변경
-         */
-        block.nkeys = mid;
-        newBlock.nkeys = maxKeys + 1 - mid;
-
-        newBlock.vals[maxKeys+1] = block.vals[maxKeys+1]; // newBlock 다음 block pointer =  기존의 다음 block pointer
-        block.vals[maxKeys+1] = (int)(raf.length() + 1); // block 마지막 pointer = newBlock pointer
 
         return newBlock;
     }
@@ -167,7 +275,7 @@ public class HanyangSEBPlusTree implements BPlusTree {
             raf.seek(blockPointer);
         }
         else{//new write
-            raf.seek(raf.length());
+            raf.seek(raf.length() * 4);
         }
 
         raf.writeInt(b.parent);
