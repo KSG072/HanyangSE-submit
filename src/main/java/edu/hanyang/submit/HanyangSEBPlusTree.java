@@ -69,7 +69,7 @@ public class HanyangSEBPlusTree implements BPlusTree {
 
         if(block.nkeys + 1 > maxKeys){ // 넘쳤을 때
             Block newnode = split(block, key, value);
-            insertInternal(readBlock(block.parent), newnode.parent);
+            insertInternal(block.parent, newnode.parent);
         }
         else{
             // TODO: your code here...
@@ -78,6 +78,14 @@ public class HanyangSEBPlusTree implements BPlusTree {
     }
 //    private void writeBlock(int) 만들어야함
 
+    /*
+     * 꽉찬 블록을 나누어주는 함수
+     *
+     * @param block 나눌 블록
+     * @param key   추가 key값
+     * @param value 추가 val값
+     * @return new block    새로 만들어진 블록
+     */
     private Block split(Block block, int key, int value) throws IOException {
         /*
         기존 블락 + 새로운거
@@ -180,8 +188,32 @@ public class HanyangSEBPlusTree implements BPlusTree {
 
     }
 
-    public void insertInternal(Block parent, int pos){
+    /**
+     * 블록의 parent와 연결시켜주는 함수
+     *
+     * @param parent 기존 블록의 부모 위치
+     * @param pos    새로운 블록의 부모를 가리키는 포인터의 위치
+     * @throws IOException
+     */
+    public void insertInternal(int parent, int pos) throws IOException {
         // TODO: fill here...
+        raf.seek(pos);
+        int value = (int) raf.getFilePointer(); // 새로운 블록의 위치 저장
+        raf.writeInt(parent);
+        raf.seek(pos + (4 * 3));    // 맨 처음 key 값 앞으로 커서 옮김
+        int key = raf.readInt();        // 맨 처음 key 값 저장
+
+        Block block = readBlock(parent);    // insert 할 block
+
+        if(block.nkeys + 1 > maxKeys){ // 넘쳤을 때
+            Block newnode = split(block, key, value);
+            insertInternal(block.parent, newnode.parent);
+        }
+        else{
+            // TODO: your code here...
+            block.addKey(key, value);
+        }
+//        raf.writeBlock(parent);
     }
 
 

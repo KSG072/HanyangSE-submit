@@ -13,7 +13,7 @@ public class Block {
         this.keys = new int[maxKeys];
         this.vals = new int[maxKeys+1];
     }
-    public Block(long p, int t, int n, int maxKeys){
+    public Block(int p, int t, int n, int maxKeys){
         this.parent = p;
         this.type = t;
         this.nkeys = n;
