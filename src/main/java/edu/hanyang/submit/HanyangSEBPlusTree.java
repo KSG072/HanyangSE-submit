@@ -57,37 +57,7 @@ public class HanyangSEBPlusTree implements BPlusTree {
         inserted = true;
         Block block = searchNode(key);
 
-        if (block.nkeys == maxKeys) { // 해당 block에 insert할 자리가 없으면 block 하나 더 만들어서 쪼갠 뒤 재귀
-            blockNum++;
-            Block newBlock = split(block, key, val);
-            int midKey = newBlock.nodeArray.get(1).get(0);
-
-            if (block.parent == null) {
-                blockNum++;
-                rootIndex = blockNum;
-                Block Parent = new Block(blockNum, 0, 0);
-                root = Parent;
-                Parent.child.add(block);
-                Parent.child.add(newBlock);
-                Parent.childSort();
-                block.parent = Parent;
-                newBlock.parent = Parent;
-                Parent.nodeArray.get(0).set(1, Parent.child.get(0).myPos);
-            }
-            else {
-                block.parent.child.add(newBlock);
-                block.parent.childSort();
-                newBlock.parent = block.parent;
-//                newnode.parent.nkeys++;
-
-            }
-            insertInternal(block.parent, newBlock.myPos, midKey);
-        }
-        else { // 해당 block에 insert할 빈 공간 존재 그냥 그 블락 안에서 알맞은 위치 찾아서 넣으면 끝
-            ArrayList<Integer> newNode = new ArrayList<>();
-            newNode.add(key); newNode.add(val);
-            block.addNode(newNode);
-        }
+        insertInternal(block, key, val);
     }
 
     private Block searchNode(int key) throws IOException { //leaf에 있는 block을 리턴
@@ -128,50 +98,39 @@ public class HanyangSEBPlusTree implements BPlusTree {
         return newBlock;
     }
 
-    private void insertInternal(Block parent, int newPos, int midKey) throws IOException {
-        int pMid = (int)Math.ceil((double)parent.nkeys/2) + 1; // 중간 위치
+    private void insertInternal(Block block, int key, int val) throws IOException {
+//        int pMid = (int)Math.ceil((double)parent.nkeys/2) + 1; // 중간 위치
+        if(block.nkeys == maxKeys) { // 해당 block에 insert할 자리가 없으면 block 하나 더 만들어서 쪼갠 뒤 재귀
+            blockNum++;
+            Block newBlock = split(block, key, val);
+            int midKey = newBlock.nodeArray.get(1).get(0);
 
-        parent.nodeArray.get(0).set(1, parent.child.get(0).my_pos);
+            if(block.parent == null) { //root is full
+                blockNum++;
+                rootIndex = blockNum;
+                Block newRoot = new Block(blockNum, 0, 0);
+                root = newRoot;
+                newRoot.addChild(block);
+                newRoot.addChild(newBlock);
+                block.parent = newRoot;
+                newBlock.parent = newRoot;
+                newRoot.nodeArray.get(0).set(1, newRoot.child.get(0).myPos);
+                newRoot.nodeArray.get(1).set(1, newRoot.child.get(1).myPos);
+            }else if (block.leaf == 0) { //internal is full
 
-        ArrayList<Integer> newdata = new ArrayList(); // 새로운 데이터 arraylist 생성
-
-        newdata.add(new_node_key);
-        newdata.add(my_pos);
-        parent.data.add(newdata);
-        parent.sort();
-        parent.nkeys += 1;
-
-        if (par_size + 1 > maxKeys){ // 꽉찼을 때
-            block_numbers++;
-            root_index = block_numbers;
-            Block newpar = new Block(block_numbers, 0, 0);
-
-            for(int i = p; i < parent.nkeys + 1; i ++){ // 새로 쪼갠 parent에 값 추가
-                newpar.data.add(new ArrayList<>(parent.data.get(i)));
-                newpar.nkeys++;
-                newpar.child.add(parent.child.get(i));
+            }else{//leaf is full
+                Block Parent = block.parent;
             }
-            int key = parent.data.get(p).get(0);
-            int pointer = newpar.my_pos;
+        }
+        else{
+            if(block.leaf == 0){ // don't remain midKey in block
 
-            newpar.data.get(0).set(1, newpar.child.get(0).my_pos);
-            for(int i = parent.nkeys; i >= p ; i--){ // 기존 parent 값 제거
-                parent.data.remove(new ArrayList<>(parent.data.get(i)));
-                parent.nkeys--;
-                parent.child.remove(parent.child.get(i));
             }
+            else{ // remain midKey in block
 
-            block_numbers++; root_index = block_numbers;
-            Block par_parent = new Block(block_numbers, 0, 0);
-            root = par_parent;
-
-            parent.parent = par_parent; newpar.parent = par_parent;
-            par_parent.child.add(parent); par_parent.child.add(newpar);
-
-            insertInternal(parent.parent, pointer, key); // 가운데 값 parent로 올림
+            }
         }
     }
-
     @Override
     public int search(int key) throws IOException { // value 값 리턴
         root = readBlock(root_index); //시작노드
@@ -296,7 +255,7 @@ public class HanyangSEBPlusTree implements BPlusTree {
             ArrayList<ArrayList<Integer>> newNode = new ArrayList<>();
             int i;
             for(i=0; i<this.nkeys; i++){
-                if(newkey < this.nodeArray.get(i).get(0)){
+                if(newkey <= this.nodeArray.get(i).get(0)){
                     newNode.add(this.nodeArray.get(i));
                 }
                 else{
@@ -309,8 +268,17 @@ public class HanyangSEBPlusTree implements BPlusTree {
             this.nkeys++;
         }
 
-        public void childSort(){
-
+        public void addChild(Block child){
+            ArrayList<Block> newChild = new ArrayList<>();
+            for(int i=0; i<this.nkeys+1; i++){
+                if(child.nodeArray.get(0).get(0) <= this.child.get(i).nodeArray.get(0).get(0)){
+                    newChild.add(this.child.get(i));
+                }
+                else{
+                    newChild.add(child);
+                    newChild.add(this.child.get(i));
+                }
+            }
         }
     }
 }
