@@ -110,7 +110,6 @@ public class HanyangSEBPlusTree implements BPlusTree {
 
         if(block.leaf == 1) //leaf node 일 때
         {
-
             for(int i = mid+1; i < block.nkeys; i++) {
                 newBlock.addNode(block.nodeArray.get(i));
             }
