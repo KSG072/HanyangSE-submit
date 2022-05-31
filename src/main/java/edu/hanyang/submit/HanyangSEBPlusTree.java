@@ -6,7 +6,6 @@ import java.nio.ByteBuffer;
 import java.util.*;
 
 import io.github.hyerica_bdml.indexer.BPlusTree;
-import scala.concurrent.BlockContext;
 
 
 public class HanyangSEBPlusTree implements BPlusTree {
@@ -28,9 +27,9 @@ public class HanyangSEBPlusTree implements BPlusTree {
     public RandomAccessFile raf;
 
     public Block root;
-    public int block_numbers = 0;
-    public int root_index = 0;
-    public int flag = 0;
+    public int blockNum = 1;
+    public int rootIndex = 0;
+    public boolean inserted = false;
 
 
     @Override
@@ -44,90 +43,60 @@ public class HanyangSEBPlusTree implements BPlusTree {
 
         raf = new RandomAccessFile(treepath, "rw");
 
-        if (raf.length() == 0) { // 빈파일일때는 root만들기
-            root = new Block(block_numbers, 1, 0);
-//            raf.writeInt(0); // my_pos
-//            raf.writeInt(1); // 1이 leaf고 0이 non-leaf
-//            raf.writeInt(0); // nkeys
-//            raf.writeInt(-1); // parent 없으니까 -
+        if (raf.length() != 0) {
+            rootIndex = raf.readInt();
         }
-        else {
-            root_index = raf.readInt();
+        else{
+            root = new Block();
         }
-//        else {
-//            raf.seek(0);
-//            for (int i = 0; i < raf.length() / 8; i++) {
-//                int key = raf.readInt();
-//                int value = raf.readInt();
-//                insert(key, value);
-//            }
-//        }
-
     }
 
     @Override
     public void insert(int key, int val) throws IOException {
 //        TODO: your code here...
-        flag = 1;
+        inserted = true;
         Block block = searchNode(key);
 
-        if (block.nkeys + 1 > maxKeys) { // 해당 block에 insert할 자리가 없으면 block 하나 더 만들어서 쪼갠 뒤 재귀
-            block_numbers++;
-            Block newnode = split(block, key, val);
-            int new_node_key = newnode.data.get(1).get(0);
+        if (block.nkeys == maxKeys) { // 해당 block에 insert할 자리가 없으면 block 하나 더 만들어서 쪼갠 뒤 재귀
+            blockNum++;
+            Block newBlock = split(block, key, val);
+            int midKey = newBlock.nodeArray.get(1).get(0);
 
-            if (block.parent == null) {
-                block_numbers++;
-                root_index = block_numbers;
-                Block new_parent = new Block(block_numbers, 0, 0);
-                root = new_parent;
-                new_parent.child.add(block);
-                new_parent.child.add(newnode);
-                new_parent.sort2();
-                block.parent = new_parent;
-                newnode.parent = new_parent;
-                new_parent.data.get(0).set(1, new_parent.child.get(0).my_pos);
+            if (block.parent == null) { // root일때
+                blockNum++;
+                rootIndex = blockNum;
+                Block Parent = new Block(blockNum, 0, 0);
+                root = Parent;
+                Parent.child.add(block);
+                Parent.child.add(newBlock);
+                Parent.childSort();
+                block.parent = Parent;
+                newBlock.parent = Parent;
+                Parent.nodeArray.get(0).set(1, Parent.child.get(0).myPos);
             }
-
             else {
-                block.parent.child.add(newnode);
-                block.parent.sort2();
-                newnode.parent = block.parent;
+                block.parent.child.add(newBlock);
+                block.parent.childSort();
+                newBlock.parent = block.parent;
 //                newnode.parent.nkeys++;
 
             }
-
-            insertInternal(block.parent, newnode.my_pos, new_node_key);
-
+            insertInternal(block.parent, newBlock.myPos, midKey);
         }
         else { // 해당 block에 insert할 빈 공간 존재 그냥 그 블락 안에서 알맞은 위치 찾아서 넣으면 끝
-            ArrayList<Integer> key_value = new ArrayList<>();
-            key_value.add(key); key_value.add(val);
-            block.data.add(key_value);
-            block.sort();
-
-            block.nkeys++;
-//            raf.seek(block.my_pos + 8);
-//            raf.writeInt(block.nkeys++);
-
+            ArrayList<Integer> newNode = new ArrayList<>();
+            newNode.add(key); newNode.add(val);
+            block.addNode(newNode);
         }
     }
 
     private Block searchNode(int key) throws IOException { //leaf에 있는 block을 리턴
-        Block b = root; //
+        Block b = root;
         Block tmp = root;
         while (tmp.leaf == 0) { // leaf일때까지 반복
-            for (int i = 1; i < b.nkeys+1; i++) {
-                if (key > b.data.get(i).get(0)) { //if no such exist, set c = last non-null pointer in C
-                    tmp = b.child.get(i); //변경 i->i+1 / child 맨마지막 child에서 불러오기
-                }
-                else { //key <= b.keys[i] 되는 값 찾은 경우
-                    if (b.data.get(i).get(0) == key) {
-                        tmp = b.child.get(i); //i+1불러오는거
-                    }
-                    else {
-                        tmp = b.child.get(i-1); //i 불러오는거
-                    }
+            for (int i = 0; i < tmp.nkeys; i++) {
+                if(tmp.nodeArray.get(i).get(0) > key){
+                    tmp = tmp.child.get(i-1);
                     break;
                 }
             }
@@ -136,40 +105,33 @@ public class HanyangSEBPlusTree implements BPlusTree {
     }
 
     private Block split(Block block, int key, int val) {
-        block.nkeys += 1;
-        int block_key_num = block.nkeys;
-        int m = (int)Math.ceil((double)block.nkeys/2); // 한 block의 key의 갯수를 반으로 쪼개서 올림한 수
+        int keyNum = block.nkeys + 1;
+        int mid = (int)Math.ceil((double)keyNum/2); // 한 block의 key의 갯수를 반으로 쪼개서 올림한 수
 
-        Block newblock = new Block(block_numbers, 1, 0);
+        Block newBlock = new Block(blockNum, 1, 0);
 
-        ArrayList<Integer> newdata = new ArrayList(); // 새로운 데이터 arraylist 생성
+        ArrayList<Integer> newNode = new ArrayList(); // 새로운 데이터 arraylist 생성
+        newNode.add(key);
+        newNode.add(val);
 
-        newdata.add(key);
-        newdata.add(val);
+        block.addNode(newNode); // 새로운 데이터 추가
 
-        block.data.add(newdata); // 새로운 데이터 추가
-
-        block.sort(); // 정렬 -> 결과 보고 수정해야할지도..?
-
-        for(int i = m+1; i < block_key_num+1; i++) { // new block에 절반 이상 만큼 넣기
-            newblock.data.add(new ArrayList<>(block.data.get(i)));
-            newblock.nkeys++; //
+        for(int i = mid+1; i < block.nkeys; i++) { // new block에 절반 이상 만큼 넣기
+            newBlock.addNode(new ArrayList<>(block.nodeArray.get(i)));
         }
 
-        for(int i = block_key_num; i > m ; i--) { // new block에서 m부터 그 뒤에 제거하기
-            block.data.remove(new ArrayList<>(block.data.get(i)));
+        for(int i = blockNum; i > mid ; i--) { // new block에서 m부터 그 뒤에 제거하기
+            block.nodeArray.remove(new ArrayList<>(block.nodeArray.get(i)));
             block.nkeys--;
         }
 
-
-        return newblock;
+        return newBlock;
     }
 
-    private void insertInternal(Block parent, int my_pos, int new_node_key) throws IOException {
-        int par_size = parent.nkeys;
+    private void insertInternal(Block parent, int myPos, int midKey) throws IOException {
         int p = (int)Math.ceil((double)parent.nkeys/2) + 1; // 중간 위치
 
-        parent.data.get(0).set(1, parent.child.get(0).my_pos);
+        parent.node.get(0).set(1, parent.child.get(0).my_pos);
 
         ArrayList<Integer> newdata = new ArrayList(); // 새로운 데이터 arraylist 생성
 
@@ -280,18 +242,16 @@ public class HanyangSEBPlusTree implements BPlusTree {
     @Override
     public void close() throws IOException {
         // TODO: your code here...
-        if (flag == 1) {
+        if (inserted) {
             raf.writeInt(root_index);
             traverse(root);
         }
-        flag = 0;
         raf.close();
-
     }
 
     public void traverse(Block b) throws IOException {
 
-        raf.writeInt(b.my_pos);
+        raf.writeInt(b.myPos);
         raf.writeInt(b.leaf);
         raf.writeInt(b.nkeys);
 
@@ -301,7 +261,7 @@ public class HanyangSEBPlusTree implements BPlusTree {
             raf.writeInt(key); raf.writeInt(value);
         }
         for (int i = b.data.size(); i < (blocksize - 12)/8; i += 1) {
-            raf.writeInt(-2); raf.writeInt(-2);
+            raf.writeInt(-1); raf.writeInt(-1);
         }
 
         if (b.leaf == 0) {
@@ -313,49 +273,44 @@ public class HanyangSEBPlusTree implements BPlusTree {
 
     class Block {
 
-        public int my_pos = -1;
+        public int myPos = 0;
         public int leaf = 1;
         public int nkeys = 0; // block 안에 있는 key의 개수
         //        public int parent_pos = -1;
-        public ArrayList<ArrayList<Integer>> data = new ArrayList<>();
+        public ArrayList<ArrayList<Integer>> nodeArray = new ArrayList<>();
         public ArrayList<Block> child = new ArrayList<>();
 
         public Block parent = null; // 현재 블록의 parent block
 
-
-
-
-        public void sort() {
-            Comparator<ArrayList<Integer>> comparator = new Comparator<ArrayList<Integer>>() {
-                public int compare(ArrayList<Integer> o1, ArrayList<Integer> o2) {
-                    return o1.get(0).compareTo(o2.get(0));
-                }
-            };
-            Collections.sort(data, comparator);
-        }
-
-        public void sort2() {
-            Comparator<Block> comparator = new Comparator<Block>() {
-                public int compare(Block o1, Block o2) {
-                    return o1.data.get(1).get(0).compareTo(o2.data.get(1).get(0));
-                }
-            };
-            Collections.sort(child, comparator);
-        }
-
         Block() {
-            ArrayList<Integer> pointer = new ArrayList<>();
-//            pointer.add(-1); pointer.add(-1);
-//            this.data.add(pointer);
         }
 
-        Block(int my_pos, int leaf, int nkeys) {
-            this.my_pos = my_pos;
+        Block(int myPos, int leaf, int nkeys) {
+            this.myPos = myPos;
             this.leaf = leaf;
             this.nkeys = nkeys;
-            ArrayList<Integer> pointer = new ArrayList<>();
-//            pointer.add(-1); pointer.add(-1);
-//            this.data.add(pointer);
+        }
+
+        public void addNode(ArrayList<Integer> node){
+            int newkey = node.get(0);
+            ArrayList<ArrayList<Integer>> newNode = new ArrayList<>();
+            int i;
+            for(i=0; i<this.nkeys; i++){
+                if(newkey < this.nodeArray.get(i).get(0)){
+                    newNode.add(this.nodeArray.get(i));
+                }
+                else{
+                    newNode.add(node);
+                    newNode.add(this.nodeArray.get(i));
+                    break;
+                }
+            }
+            this.nodeArray = newNode;
+            this.nkeys++;
+        }
+
+        public void childSort(){
+
         }
     }
 }
