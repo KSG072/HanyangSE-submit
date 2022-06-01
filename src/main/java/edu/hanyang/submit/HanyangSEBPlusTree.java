@@ -94,7 +94,8 @@ public class HanyangSEBPlusTree implements BPlusTree {
                     block = block.child.get(i);
                     break;
                 }
-            }        }
+            }
+        }
         return block;
     }
 
@@ -112,7 +113,7 @@ public class HanyangSEBPlusTree implements BPlusTree {
         node.add(key); node.add(val);
         block.addNode(node);
 
-        int keyNum = block.nkeys;
+        int keyNum = block.nkeys-1;
         int mid = (int)Math.ceil((double)(keyNum)/2);
 
         if(block.leaf == 1) //leaf node 일 때
@@ -363,23 +364,25 @@ public class HanyangSEBPlusTree implements BPlusTree {
          */
         public void addNode(ArrayList<Integer> node){
             int newkey = node.get(0);
+            int inserted = 0;
             ArrayList<ArrayList<Integer>> newNode = new ArrayList<>();
 
-            int keyPos;
-            for(keyPos=0; keyPos<this.nkeys; keyPos++)
-                if(newkey <= this.nodeArray.get(keyPos).get(0)) break;
-
-            for(int j=0; j<nkeys+1; j++)
-            {
-                if(keyPos != j){
-                    newNode.add(this.nodeArray.get(j));
-                }
-                else {
-                    newNode.add(node);
-                    newNode.add(this.nodeArray.get(j));
-                }
+            if(this.nkeys == 0){
+                newNode.add(node);
             }
-
+            else{
+                for(int i=0; i<this.nkeys; i++){
+                    if(newkey < this.nodeArray.get(i).get(0)){
+                        inserted = 1;
+                        newNode.add(node);
+                        newNode.add(this.nodeArray.get(i));
+                    }
+                    else{
+                        newNode.add(this.nodeArray.get(i));
+                    }
+                }
+                if(inserted == 0) newNode.add(node);
+            }
             this.nodeArray = newNode;
             this.nkeys++;
         }
@@ -389,22 +392,24 @@ public class HanyangSEBPlusTree implements BPlusTree {
          */
         public void addChild(Block child){
             ArrayList<Block> newChild = new ArrayList<>();
-
-            int i;
-            for(i=0; i<this.nkeys+1; i++)
-                if(child.nodeArray.get(0).get(0) < this.child.get(i).nodeArray.get(0).get(0)) break;
-
-            for(int j=0; j<this.nkeys+1; j++)
-            {
-                if( i != j)
-                    newChild.add(this.child.get(j));
-                else{
-                    newChild.add(child);
-                    newChild.add(this.child.get(j));
+            int inserted = 0;
+            if(this.child.size() == 0){
+                newChild.add(child);
+            }
+            else{
+                for(int i=0; i<this.child.size(); i++){
+                    if(child.nodeArray.get(0).get(0) < this.child.get(0).nodeArray.get(0).get(0)){
+                        inserted = 1;
+                        newChild.add(child);
+                        newChild.add(this.child.get(i));
+                    }
+                    else{
+                        newChild.add(this.child.get(i));
+                    }
                 }
+                if(inserted == 0) newChild.add(child);
             }
             this.child = newChild;
-            this.nkeys++;
         }
     }
 }
