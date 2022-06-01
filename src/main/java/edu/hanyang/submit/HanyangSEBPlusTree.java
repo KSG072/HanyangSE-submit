@@ -274,7 +274,6 @@ public class HanyangSEBPlusTree implements BPlusTree {
     //이 메소드를 통해서 자신의 자식으로 제귀를 함으로써 트리의 모든 데이터를 써 내려가는 것으로 보임
     // TODO raf.writeInt(b.val0) 도 추가해줘야함
     public void traverse(Block b) throws IOException {
-
         raf.writeInt(b.myPos);
         raf.writeInt(b.leaf);
         raf.writeInt(b.nkeys);
@@ -282,7 +281,7 @@ public class HanyangSEBPlusTree implements BPlusTree {
         for (int i = 0; i < b.nodeArray.size(); i++) {
             int key = b.nodeArray.get(i).get(0);
             int value = b.nodeArray.get(i).get(1);
-            raf.writeInt(key); raf.writeInt(value);
+            raf.writeInt(value); raf.writeInt(key);
         }  for (int i = 0; i < maxKeys-b.nkeys; i++) {
             raf.writeInt(-1); raf.writeInt(-1);
         }
