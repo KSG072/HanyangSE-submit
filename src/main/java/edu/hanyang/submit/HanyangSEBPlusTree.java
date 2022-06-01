@@ -88,13 +88,17 @@ public class HanyangSEBPlusTree implements BPlusTree {
 
     private Block searchNode(int key) throws IOException { //leaf에 있는 block을 리턴
         Block block = root;
+        int changed;
         while (block.leaf == 0) { // leaf일때까지 반복
+            changed = 0;
             for(int i=0; i<block.nkeys; i++){
                 if(block.nodeArray.get(i).get(0) > key){
+                    changed = 1;
                     block = block.child.get(i);
                     break;
                 }
             }
+            if(changed == 0) block = block.child.get(block.child.size()-1);
         }
         return block;
     }
@@ -113,7 +117,7 @@ public class HanyangSEBPlusTree implements BPlusTree {
         node.add(key); node.add(val);
         block.addNode(node);
 
-        int keyNum = block.nkeys-1;
+        int keyNum = block.nkeys;
         int mid = (int)Math.ceil((double)(keyNum)/2);
 
         if(block.leaf == 1) //leaf node 일 때
@@ -121,11 +125,10 @@ public class HanyangSEBPlusTree implements BPlusTree {
             for(int i = mid+1; i < block.nkeys; i++) {
                 newBlock.addNode(block.nodeArray.get(i));
             }
-            for(int i = keyNum; i > mid ; i--) {
+            for(int i = keyNum-1; i >= mid ; i--) {
                 block.nodeArray.remove(block.nodeArray.get(i));
+                block.nkeys--;
             }
-            newBlock.nkeys = block.nkeys - mid;
-            block.nkeys = mid;
             newBlock.val0 = block.val0;
             block.val0 = newBlock.myPos;
             newBlock.parent = block.parent;
@@ -137,18 +140,18 @@ public class HanyangSEBPlusTree implements BPlusTree {
             // newBlock key -> max - (mid - 1) - 1 +1
             for(int i=mid+1; i<block.nkeys; i++)
                 newBlock.addNode(block.nodeArray.get(i));
-            newBlock.nkeys = block.nkeys - mid;
             newBlock.val0 = block.val0;
             newBlock.parent = block.parent;
 
             // 기존 block key -> mid-1개
-            for(int i=0; i < block.nkeys - (mid-1);i++)
+            for(int i=0; i < block.nkeys - (mid-1);i++){
                 block.nodeArray.remove(mid);
-            block.nkeys = mid-1;
+                block.nkeys--;
+            }
             block.val0 = block.nodeArray.get(mid).get(1);
 
             // midNode 를 가지고 있는 block
-            Block childToParent = new Block(blockPos, 0, 1, newBlock.myPos);
+            Block childToParent = new Block(blockPos, 0, 0, newBlock.myPos);
             ArrayList<Integer> newRootNode = new ArrayList<>();
             newRootNode.add(block.nodeArray.get(mid).get(0));
             newRootNode.add(block.nodeArray.get(mid).get(1));
@@ -190,45 +193,6 @@ public class HanyangSEBPlusTree implements BPlusTree {
         }
         else
             block.addNode(jumpedNode);
-
-
-        /*
-        ArrayList<Integer> jumpedNode = new ArrayList<>();
-
-        jumpedNode.add(key);
-        jumpedNode.add(val);
-        block.addNode(jumpedNode);
-
-        if(block.nkeys > maxKeys){
-
-            int mid = (int)Math.ceil((double)block.nkeys/2);
-            Block newBlock = new Block(blockPos, 0, 0, -1);
-
-            for(int i=mid+1; i<block.nkeys; i++){
-                newBlock.addNode(block.nodeArray.get(i));
-                newBlock.addChild(block.child.get(i));
-            }
-            newBlock.val0 = newBlock.child.get(0).myPos;
-
-            int tmpKey = block.nodeArray.get(mid).get(0);
-
-            for(int i=block.nkeys;i>mid;i--){
-                block.nodeArray.remove(new ArrayList<>(block.nodeArray.get(i)));
-                block.child.remove(block.child.get(i));
-                block.nkeys--;
-            }
-            if(block.parent==null){
-                Block tmpRoot = new Block(blockPos, 0, 0, block.myPos);
-                block.parent = tmpRoot;
-                newBlock.parent = tmpRoot;
-                tmpRoot.child.add(block);
-                tmpRoot.child.add(newBlock);
-                root = tmpRoot;
-
-            }
-            insertInternal(block.parent, tmpKey, newBlock.myPos);
-        }
-        */
     }
     @Override
     public int search(int key) throws IOException { // value 값 리턴
@@ -344,6 +308,7 @@ public class HanyangSEBPlusTree implements BPlusTree {
         public Block parent = null; // 현재 블록의 parent block
 
         Block() {
+            blockPos++;
         }
         /*
          * 이 블락 클래스는 두칸의 어레이 리스트(키, 밸류)가 한칸에 들어가는 이중 어레이 리스트이다. 하지만
@@ -373,8 +338,10 @@ public class HanyangSEBPlusTree implements BPlusTree {
             else{
                 for(int i=0; i<this.nkeys; i++){
                     if(newkey < this.nodeArray.get(i).get(0)){
-                        inserted = 1;
-                        newNode.add(node);
+                        if(inserted == 0) {
+                            inserted = 1;
+                            newNode.add(node);
+                        }
                         newNode.add(this.nodeArray.get(i));
                     }
                     else{
