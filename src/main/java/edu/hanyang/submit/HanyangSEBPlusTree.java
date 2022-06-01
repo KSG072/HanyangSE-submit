@@ -52,9 +52,19 @@ public class HanyangSEBPlusTree implements BPlusTree {
         }
         else{
             rootIndex = meta.readInt();
+            while(raf.getFilePointer() != raf.length()){
+                System.out.print(raf.readInt());
+                System.out.print(" ");
+                if(raf.getFilePointer() % blocksize == 0) System.out.println();
+            }
             for(int i=0; i<raf.length(); i+=blocksize){
                 raf.seek(i);
                 posInfo.put(raf.readInt(), i);
+//                raf.seek(i);
+//                for(int j=0; j<blocksize/4; j++){
+//                    System.out.print(raf.readInt());
+//                }
+//                System.out.println();
             }
         }
     }
@@ -216,7 +226,7 @@ public class HanyangSEBPlusTree implements BPlusTree {
         block.leaf = raf.readInt();
         block.nkeys = raf.readInt();
 
-        for(int i=0; i<maxKeys*2; i++){
+        for(int i=0; i<block.nkeys; i++){
             node.add(0, raf.readInt());
             node.add(1, raf.readInt());
             if(node.get(0) != -1 && node.get(1) != -1) {
@@ -265,7 +275,9 @@ public class HanyangSEBPlusTree implements BPlusTree {
     @Override
     public void close() throws IOException {
         if (inserted) {
+            meta.seek(0);
             meta.writeInt(rootIndex); // 파일을 open할때 첫번째 int인 rootindex를 읽음으로써 rootindex를 알 수 있다.
+            raf.seek(0);
             traverse(root);
         }
         meta.close();
@@ -274,12 +286,11 @@ public class HanyangSEBPlusTree implements BPlusTree {
     //이 메소드를 통해서 자신의 자식으로 제귀를 함으로써 트리의 모든 데이터를 써 내려가는 것으로 보임
     // TODO raf.writeInt(b.val0) 도 추가해줘야함
     public void traverse(Block b) throws IOException {
-
         raf.writeInt(b.myPos);
         raf.writeInt(b.leaf);
         raf.writeInt(b.nkeys);
 
-        for (int i = 0; i < b.nodeArray.size(); i++) {
+        for (int i = 0; i < b.nkeys; i++) {
             int key = b.nodeArray.get(i).get(0);
             int value = b.nodeArray.get(i).get(1);
             raf.writeInt(key); raf.writeInt(value);
