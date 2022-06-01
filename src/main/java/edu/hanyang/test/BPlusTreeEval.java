@@ -69,7 +69,7 @@ public class BPlusTreeEval {
             int offset = offsetList.get(tokenId);
 
             btree.insert(tokenId, offset);
-            System.out.printf("insert('%d','%d') ", tokenId, offset);
+//            System.out.printf("insert('%d','%d') ", tokenId, offset);
         }
 
         System.out.println("Indexing is done.");
@@ -84,7 +84,7 @@ public class BPlusTreeEval {
 
             if (_offset != correctOffset) {
                 System.err.printf("ASSERT ERROR: offset of token '%d' must be '%d'\nresult is '%d'\n", tokenId, correctOffset, _offset);
-//                return false;
+                return false;
             }
         }
         System.out.println("Search testing is done.");
