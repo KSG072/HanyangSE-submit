@@ -293,7 +293,7 @@ public class HanyangSEBPlusTree implements BPlusTree {
         for (int i = 0; i < b.nkeys; i++) {
             int key = b.nodeArray.get(i).get(0);
             int value = b.nodeArray.get(i).get(1);
-            raf.writeInt(key); raf.writeInt(value);
+            raf.writeInt(value); raf.writeInt(key);
         }  for (int i = 0; i < maxKeys-b.nkeys; i++) {
             raf.writeInt(-1); raf.writeInt(-1);
         }
