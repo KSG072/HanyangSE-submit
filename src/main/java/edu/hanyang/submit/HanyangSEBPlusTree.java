@@ -87,22 +87,14 @@ public class HanyangSEBPlusTree implements BPlusTree {
     }
 
     private Block searchNode(int key) throws IOException { //leaf에 있는 block을 리턴
-        Block block = new Block();
+        Block block = root;
         while (block.leaf == 0) { // leaf일때까지 반복
-            for (int i = 0; i < root.nkeys; i++) {
+            for(int i=0; i<block.nkeys; i++){
                 if(block.nodeArray.get(i).get(0) > key){
-                    block = root.child.get(i-1);
-                    return block;
+                    block = block.child.get(i);
+                    break;
                 }
-                else if(block.nodeArray.get(i).get(0) == key){
-                    block = root.child.get(i);
-                    return block;
-                }
-                else{
-                    block = root.child.get(i);
-                }
-            }
-        }
+            }        }
         return block;
     }
 
