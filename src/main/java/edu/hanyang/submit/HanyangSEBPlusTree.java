@@ -52,10 +52,13 @@ public class HanyangSEBPlusTree implements BPlusTree {
         }
         else{
             rootIndex = meta.readInt();
+            raf.seek(0);
+            int cnt=0;
             while(raf.getFilePointer() != raf.length()){
                 System.out.print(raf.readInt());
+                cnt++;
                 System.out.print(" ");
-                if(raf.getFilePointer() % blocksize == 0) System.out.println();
+                if(cnt%(blocksize/4) == 0) System.out.println();
             }
             for(int i=0; i<raf.length(); i+=blocksize){
                 raf.seek(i);
@@ -136,7 +139,7 @@ public class HanyangSEBPlusTree implements BPlusTree {
                 newBlock.addNode(block.nodeArray.get(i));
             }
             for(int i = keyNum-1; i >= mid ; i--) {
-                block.nodeArray.remove(block.nodeArray.get(i));
+                block.nodeArray.remove(i);
                 block.nkeys--;
             }
             newBlock.val0 = block.val0;
@@ -148,16 +151,15 @@ public class HanyangSEBPlusTree implements BPlusTree {
         else // non-leaf node
         {
             // newBlock key -> max - (mid - 1) - 1 +1
-            for(int i=mid+1; i<block.nkeys; i++)
+            for(int i=mid+1; i<block.nkeys; i++) {
                 newBlock.addNode(block.nodeArray.get(i));
+                block.nodeArray.remove(i);
+                block.nkeys--;
+            }
             newBlock.val0 = block.val0;
             newBlock.parent = block.parent;
 
             // 기존 block key -> mid-1개
-            for(int i=0; i < block.nkeys - (mid-1);i++){
-                block.nodeArray.remove(mid);
-                block.nkeys--;
-            }
             block.val0 = block.nodeArray.get(mid).get(1);
 
             // midNode 를 가지고 있는 block
@@ -201,8 +203,6 @@ public class HanyangSEBPlusTree implements BPlusTree {
             newBlock.parent = block.parent;
             insertInternal(block.parent, newBlock.nodeArray.get(0).get(0), newBlock.myPos);
         }
-        else
-            block.addNode(jumpedNode);
     }
     @Override
     public int search(int key) throws IOException { // value 값 리턴
