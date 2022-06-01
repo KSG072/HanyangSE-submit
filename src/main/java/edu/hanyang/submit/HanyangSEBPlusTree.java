@@ -58,8 +58,8 @@ public class HanyangSEBPlusTree implements BPlusTree {
         if(block.nkeys == maxKeys){
 
             Block newBlock = split(block, key, val);
-
-            if(block.parent==null){ // root 일때
+            if( block.parent == null)
+            {
                 root = new Block(blockPos, 0, 0, newBlock.myPos);
                 rootIndex = root.myPos;
                 block.parent = root;
@@ -125,6 +125,7 @@ public class HanyangSEBPlusTree implements BPlusTree {
             block.nkeys = mid;
             newBlock.val0 = block.val0;
             block.val0 = newBlock.myPos;
+            newBlock.parent = block.parent;
 
             return newBlock;
         }
@@ -135,6 +136,7 @@ public class HanyangSEBPlusTree implements BPlusTree {
                 newBlock.addNode(block.nodeArray.get(i));
             newBlock.nkeys = block.nkeys - mid;
             newBlock.val0 = block.val0;
+            newBlock.parent = block.parent;
 
             // 기존 block key -> mid-1개
             for(int i=0; i < block.nkeys - (mid-1);i++)
@@ -149,6 +151,9 @@ public class HanyangSEBPlusTree implements BPlusTree {
             newRootNode.add(block.nodeArray.get(mid).get(1));
             childToParent.addNode(newRootNode);
 
+            newBlock.parent = childToParent;
+            block.parent = childToParent;
+
             return childToParent;
         }
 
@@ -157,26 +162,54 @@ public class HanyangSEBPlusTree implements BPlusTree {
 
     /*
     TODO
-        아직 변경 안함
+        block은 root가 될 수 없음
      */
     private void insertInternal(Block block, int key, int val) throws IOException {
+
         ArrayList<Integer> jumpedNode = new ArrayList<>();
-        int p = (int)Math.ceil((double)block.nkeys/2);
         jumpedNode.add(key);
         jumpedNode.add(val);
         block.addNode(jumpedNode);
+
+        if( block.nkeys > maxKeys)
+        {
+            Block newBlock = split(block, key, val);
+            if(block.parent == null)
+            {
+                root = new Block(blockPos, 0, 0, newBlock.myPos);
+                rootIndex = root.myPos;
+                block.parent = root;
+                root.addChild(block);
+            }
+            block.parent.addChild(newBlock);
+            newBlock.parent = block.parent;
+            insertInternal(block.parent, newBlock.nodeArray.get(0).get(0), newBlock.myPos);
+        }
+        else
+            block.addNode(jumpedNode);
+
+
+        /*
+        ArrayList<Integer> jumpedNode = new ArrayList<>();
+
+        jumpedNode.add(key);
+        jumpedNode.add(val);
+        block.addNode(jumpedNode);
+
         if(block.nkeys > maxKeys){
+
+            int mid = (int)Math.ceil((double)block.nkeys/2);
             Block newBlock = new Block(blockPos, 0, 0, -1);
 
-            for(int i=p+1; i<block.nkeys; i++){
+            for(int i=mid+1; i<block.nkeys; i++){
                 newBlock.addNode(block.nodeArray.get(i));
                 newBlock.addChild(block.child.get(i));
             }
             newBlock.val0 = newBlock.child.get(0).myPos;
 
-            int tmpKey = block.nodeArray.get(p).get(0);
+            int tmpKey = block.nodeArray.get(mid).get(0);
 
-            for(int i=block.nkeys;i>p;i--){
+            for(int i=block.nkeys;i>mid;i--){
                 block.nodeArray.remove(new ArrayList<>(block.nodeArray.get(i)));
                 block.child.remove(block.child.get(i));
                 block.nkeys--;
@@ -192,6 +225,7 @@ public class HanyangSEBPlusTree implements BPlusTree {
             }
             insertInternal(block.parent, tmpKey, newBlock.myPos);
         }
+        */
     }
     @Override
     public int search(int key) throws IOException { // value 값 리턴
