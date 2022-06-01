@@ -26,6 +26,7 @@ public class HanyangSEBPlusTree implements BPlusTree {
     public ByteBuffer buffer;
     public int maxKeys;
     public RandomAccessFile raf;
+    public RandomAccessFile meta;
 
     public Block root;
     public int blockPos = 1;
@@ -43,6 +44,7 @@ public class HanyangSEBPlusTree implements BPlusTree {
         this.maxKeys = (blocksize - 16) / 8;
 
         raf = new RandomAccessFile(treepath, "rw");
+        meta = new RandomAccessFile(metapath, "rw");
 
         if (raf.length() == 0) {
             root = new Block();
@@ -272,10 +274,12 @@ public class HanyangSEBPlusTree implements BPlusTree {
     @Override
     public void close() throws IOException {
         // TODO: your code here...
-        /*
-         * mata 에 root index 저장
-         *
-         */
+        //mata 에 root index 저장
+        raf.seek(rootIndex);
+        int root_pos = raf.readInt();
+        meta.seek(0);
+        meta.writeInt(root_pos);
+
         if (inserted) {
 //            raf.writeInt(rootIndex); // 파일을 open할때 첫번째 int인 rootindex를 읽음으로써 rootindex를 알 수 있다.
             traverse(root);
@@ -289,15 +293,15 @@ public class HanyangSEBPlusTree implements BPlusTree {
         raf.writeInt(b.myPos);
         raf.writeInt(b.leaf);
         raf.writeInt(b.nkeys);
-        raf.writeInt(b.val0); // 이자리가 아닐 수 있음 block 구조에 따라 넣는 순서 변경
 
         for (int i = 0; i < b.nodeArray.size(); i++) {
             int key = b.nodeArray.get(i).get(0);
             int value = b.nodeArray.get(i).get(1);
             raf.writeInt(key); raf.writeInt(value);
-        }  for (int i = b.nodeArray.size(); i < (blocksize - 12)/8; i += 1) {
+        }  for (int i = b.nodeArray.size(); i < (blocksize - 12)/8; i++) {
             raf.writeInt(-1); raf.writeInt(-1);
         }
+        raf.writeInt(b.val0); // 마지막 value 값 write
 
         if (b.leaf == 0) {
             for (int i = 0; i < b.child.size(); i++) {
