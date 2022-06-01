@@ -26,11 +26,13 @@ public class HanyangSEBPlusTree implements BPlusTree {
     public ByteBuffer buffer;
     public int maxKeys;
     public RandomAccessFile raf;
+    public RandomAccessFile meta;
 
     public Block root;
     public int blockPos = 1;
     public int rootIndex = 0;
     public boolean inserted = false;
+    public Map<Integer, Integer> posInfo = new HashMap<Integer, Integer>();
 
 
     @Override
@@ -43,9 +45,17 @@ public class HanyangSEBPlusTree implements BPlusTree {
         this.maxKeys = (blocksize - 16) / 8;
 
         raf = new RandomAccessFile(treepath, "rw");
+        meta = new RandomAccessFile(metapath, "rw");
 
         if (raf.length() == 0) {
             root = new Block();
+        }
+        else{
+            rootIndex = meta.readInt();
+            for(int i=0; i<raf.length(); i+=blocksize){
+                raf.seek(i);
+                posInfo.put(raf.readInt(), i);
+            }
         }
     }
 
@@ -207,43 +217,33 @@ public class HanyangSEBPlusTree implements BPlusTree {
         readBlock이 모든 block 다 읽는 로직으로 되어있는데
         readBlock(pos) 했을때 1Block만 읽어오도록 변경 -> searchNode에서 key비교를 통해 해당Block을 찾음
      */
-    private Block readBlock(int my_pos) throws IOException {
-        Block new_block = new Block();
-        for (int i = 0; i < raf.length(); i+=blocksize) { //8192
-//            i += (block_numbers-my_pos)*blocksize;
-            raf.seek(i);
-            int this_pos = raf.readInt();
-            if (this_pos== my_pos) {
+    private Block readBlock(int pos) throws IOException {
+        Block block = new Block();
+        ArrayList<Integer> node = new ArrayList<>();
+        raf.seek(posInfo.get(pos));
+        block.myPos = raf.readInt();
+        block.leaf = raf.readInt();
+        block.nkeys = raf.readInt();
 
-                new_block.myPos = this_pos;
-                new_block.leaf = raf.readInt();
-                new_block.nkeys = raf.readInt();
-                raf.readInt();
-                new_block.nodeArray.get(0).set(1, raf.readInt());
-//                new_block.parent_pos = raf.readInt();
-
-                for (int j = 0; j < new_block.nkeys; j++) {
-                    ArrayList<Integer> newdata = new ArrayList(); // 새로운 데이터 arraylist 생성
-                    newdata.add(raf.readInt()); newdata.add(raf.readInt());
-                    new_block.nodeArray.add(newdata);
-                }
-
+        for(int i=0; i<maxKeys*2; i++){
+            node.add(0, raf.readInt());
+            node.add(1, raf.readInt());
+            if(node.get(0) != -1 && node.get(1) != -1) {
+                block.addNode(node);
             }
         }
-        return new_block;
+        block.val0 = raf.readInt();
+
+        return block;
     }
 
     // 변수이름바꾸고 수정할거 있으면 수정해야함
-    private int _search(Block b, int key) throws IOException {
-        Block child = b;
-        if (b.leaf == 0) { // non-Leaf
-            for (int i = 1; i < b.nkeys+1; i++) {
-                if (key > b.nodeArray.get(i).get(0)) { //if no such exist, set c = last non-null pointer in C
-                    child = readBlock(b.nodeArray.get(i).get(1)); //변경 i->i+1 / child 맨마지막 child에서 불러오기
-                }
-                else { //key <= b.keys[i] 되는 값 찾은 경우
-                    if (b.nodeArray.get(i).get(0) == key) child =  readBlock(b.nodeArray.get(i).get(1)); //i+1불러오는거
-                    else child =  readBlock(b.nodeArray.get(i-1).get(1)); //i 불러오는거
+    private int _search(Block block, int key) throws IOException {
+        Block child;
+        if (block.leaf == 0) { // non-Leaf
+            for (int i = 0; i < block.nkeys; i++) {
+                if (key > block.nodeArray.get(i).get(0)) { //if no such exist, set c = last non-null pointer in C
+                    child = readBlock(block.nodeArray.get(i).get(1)); //변경 i->i+1 / child 맨마지막 child에서 불러오기
                     break;
                 }
             }
@@ -271,15 +271,11 @@ public class HanyangSEBPlusTree implements BPlusTree {
      */
     @Override
     public void close() throws IOException {
-        // TODO: your code here...
-        /*
-         * mata 에 root index 저장
-         *
-         */
         if (inserted) {
-//            raf.writeInt(rootIndex); // 파일을 open할때 첫번째 int인 rootindex를 읽음으로써 rootindex를 알 수 있다.
+            meta.writeInt(rootIndex); // 파일을 open할때 첫번째 int인 rootindex를 읽음으로써 rootindex를 알 수 있다.
             traverse(root);
         }
+        meta.close();
         raf.close();
     }
     //이 메소드를 통해서 자신의 자식으로 제귀를 함으로써 트리의 모든 데이터를 써 내려가는 것으로 보임
@@ -289,15 +285,15 @@ public class HanyangSEBPlusTree implements BPlusTree {
         raf.writeInt(b.myPos);
         raf.writeInt(b.leaf);
         raf.writeInt(b.nkeys);
-        raf.writeInt(b.val0); // 이자리가 아닐 수 있음 block 구조에 따라 넣는 순서 변경
 
         for (int i = 0; i < b.nodeArray.size(); i++) {
             int key = b.nodeArray.get(i).get(0);
             int value = b.nodeArray.get(i).get(1);
             raf.writeInt(key); raf.writeInt(value);
-        }  for (int i = b.nodeArray.size(); i < (blocksize - 12)/8; i += 1) {
+        }  for (int i = 0; i < maxKeys-b.nkeys; i++) {
             raf.writeInt(-1); raf.writeInt(-1);
         }
+        raf.writeInt(b.val0);
 
         if (b.leaf == 0) {
             for (int i = 0; i < b.child.size(); i++) {
@@ -347,10 +343,13 @@ public class HanyangSEBPlusTree implements BPlusTree {
 
             for(int j=0; j<nkeys+1; j++)
             {
-                if(keyPos != j)
+                if(keyPos != j){
                     newNode.add(this.nodeArray.get(j));
-                else
+                }
+                else {
                     newNode.add(node);
+                    newNode.add(this.nodeArray.get(j));
+                }
             }
 
             this.nodeArray = newNode;
@@ -371,8 +370,10 @@ public class HanyangSEBPlusTree implements BPlusTree {
             {
                 if( i != j)
                     newChild.add(this.child.get(j));
-                else
+                else{
                     newChild.add(child);
+                    newChild.add(this.child.get(j));
+                }
             }
             this.child = newChild;
             this.nkeys++;
