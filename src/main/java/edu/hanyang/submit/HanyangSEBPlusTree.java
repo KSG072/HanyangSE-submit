@@ -278,24 +278,26 @@ public class HanyangSEBPlusTree implements BPlusTree {
             for (int i = 0; i < block.nkeys; i++) {
                 if (key > block.nodeArray.get(i).get(0)) { //if no such exist, set c = last non-null pointer in C
                     child = readBlock(block.nodeArray.get(i).get(1)); //변경 i->i+1 / child 맨마지막 child에서 불러오기
-                    break;
+                    return _search(child, key);
                 }
             }
-            return _search(child, key);
         }
         else { // Leaf
-            /* binary or linear search*/
-
-            int low = 1, high = b.nkeys, mid;
-
-            while (low <= high) {
-                mid = (low + high) / 2;
-                if (key==b.nodeArray.get(mid).get(0)) return b.nodeArray.get(mid).get(1);
-                else if (key<b.nodeArray.get(mid).get(0)) high = mid-1;
-                else low = mid+1;
+            int left = 0, right = block.nkeys-1, mid;
+            while (left <= right) {
+                mid = (left + right) / 2;
+                if (key==block.nodeArray.get(mid).get(0)){
+                    return block.nodeArray.get(mid).get(1);
+                }
+                else if (key<block.nodeArray.get(mid).get(0)){
+                    right = mid-1;
+                }
+                else{
+                    left = mid+1;
+                }
             }
-            return -1; // 값을 못찾으면 -1
         }
+        return -1;
     }
 
 
