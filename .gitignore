@@ -183,7 +183,7 @@ fabric.properties
 target/
 lib/
 data/input_10000000.data
-data/posting_list.data
+data/posting_list3.data
 tmp/*
 *.log
 *~

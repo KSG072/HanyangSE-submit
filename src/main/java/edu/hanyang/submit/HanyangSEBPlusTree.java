@@ -1,12 +1,12 @@
 package edu.hanyang.submit;
 
-import java.io.IOException;
-import java.io.RandomAccessFile;
+import java.io.*;
 import java.nio.ByteBuffer;
-import java.sql.SQLOutput;
 import java.util.*;
 
 import io.github.hyerica_bdml.indexer.BPlusTree;
+
+import javax.print.DocFlavor;
 
 public class HanyangSEBPlusTree implements BPlusTree {
 
@@ -51,9 +51,11 @@ public class HanyangSEBPlusTree implements BPlusTree {
             root = new Block();
         } else {
             rootIndex = meta.readInt();
+            raf.seek(0);
             for (int i = 0; i < raf.length(); i += blocksize) {
-                raf.seek(i);
-                posInfo.put(raf.readInt(), i);
+                raf.read(buf);
+                buffer.position(0);
+                posInfo.put(buffer.getInt(), i);
             }
         }
     }
@@ -153,15 +155,22 @@ public class HanyangSEBPlusTree implements BPlusTree {
         Block block = new Block();
         ArrayList<Integer> node;
         raf.seek(posInfo.get(pos));
-        block.myPos = raf.readInt();
-        block.leaf = raf.readInt();
-        raf.readInt(); //nkeys는 추가하면서 알아서 늘어남 기본값 0
+        raf.read(buf);
+        buffer.position(0);
+        block.myPos = buffer.getInt();
+        block.leaf = buffer.getInt();
+        buffer.getInt();
+
+//        block.myPos = raf.readInt();
+//        block.leaf = raf.readInt();
+//        raf.readInt(); //nkeys는 추가하면서 알아서 늘어남 기본값 0
+
         int key;
         int val;
 
         for (int i = 0; i < maxKeys; i++) {
-            key = raf.readInt();
-            val = raf.readInt();
+            key = buffer.getInt();
+            val = buffer.getInt();
             if (key != -1){
                 node = new ArrayList<>();
                 node.add(key);
@@ -170,7 +179,7 @@ public class HanyangSEBPlusTree implements BPlusTree {
             }
         }
 
-        block.lastVal = raf.readInt();
+        block.lastVal = buffer.getInt();
 
         return block;
     }
