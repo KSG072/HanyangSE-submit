@@ -364,6 +364,26 @@ public class HanyangSEBPlusTree implements BPlusTree {
             }
         }
     }
+
+    private void write(Block block) throws IOException {
+        if (posInfo.containsKey(block.myPos)) {
+            raf.seek(posInfo.get(block.myPos));
+        }
+        else {
+            raf.seek(posInfo.size());                       // posInfo의 size -> 포인터의 끝
+            posInfo.put(block.myPos, posInfo.size());       // posInfo에 block의 myPos인 key와 posInfo.size인 value를 추가
+        }
+        buf[0] = (byte) block.myPos;
+        buf[4] = (byte) block.leaf;
+        buf[8] = (byte) block.nkeys;
+        for (int i = 0; i < block.nkeys; i++) {
+            buf[(i*4)+12] = (byte) block.getKey(i);
+            buf[(i*4)+16] = (byte) block.getValue(i);
+        }
+        buf[blocksize-4] = (byte) block.lastVal;
+        raf.write(buf);
+    }
+
 //    public void printTree(Block b, String tab) throws IOException {
 //        for (int i = 0; i < b.nodeArray.size(); i++) {
 //            System.out.println(tab + b.nodeArray.get(i).get(0));
