@@ -99,9 +99,8 @@ public class HanyangSEBPlusTree implements BPlusTree {
 
                 block.parent = newRoot;
                 newRoot.addChild(block);
-                newBlock.parent = newRoot;
-
             }
+            newBlock.parent = block.parent;
             block.parent.addChild(newBlock);
             insertInternal(block.parent, midKey, newBlock.myPos);
         }
@@ -128,6 +127,12 @@ public class HanyangSEBPlusTree implements BPlusTree {
             for(int i=0; i<=mid; i++) {
                 newBlock.addChild(block.child.get(0));
                 block.child.remove(0);
+            }
+            for(int i=0;i<block.child.size();i++) {
+                block.child.get(i).parent = block;
+            }
+            for(int i=0;i<newBlock.child.size();i++) {
+                newBlock.child.get(i).parent = newBlock;
             }
             newBlock.lastVal = newBlock.child.get(newBlock.nkeys).myPos;
         }
@@ -158,8 +163,8 @@ public class HanyangSEBPlusTree implements BPlusTree {
 
                 block.parent = newRoot;
                 newRoot.addChild(block);
-                newBlock.parent = newRoot;
             }
+            newBlock.parent = block.parent;
             block.parent.addChild(newBlock);
             insertInternal(block.parent, midKey, newBlock.myPos);
         }
@@ -372,106 +377,36 @@ public class HanyangSEBPlusTree implements BPlusTree {
         }
         else {
             raf.seek(raf.length());                       // posInfo의 size -> 포인터의 끝
-            posInfo.put(block.myPos, raf.getFilePointer());       // posInfo에 block의 myPos인 key와 posInfo.size인 value를 추가
+            posInfo.put(block.myPos, (int) raf.getFilePointer());       // posInfo에 block의 myPos인 key와 posInfo.size인 value를 추가
         }
-        buffer.putInt(block.mypos);
+        buffer.putInt(block.myPos);
         buffer.putInt(block.leaf);
         buffer.putInt(block.nkeys);
         for (int i = 0; i < block.nkeys; i++) {
             buffer.putInt(block.getKey(i));
             buffer.putInt(block.getValue(i));
         }
-        for (int i = 0; i < maxKeys - b.nkeys; i++) {
+        for (int i = 0; i < maxKeys - block.nkeys; i++) {
             buffer.putInt(-1);
             buffer.putInt(-1);
         }
         buffer.putInt(block.lastVal);
-        int wastecount = (blocksize / 4) - (4 + (2 * maxKeys));
-        for (int i = 0; i < wastecount; i++) {
+        int wasteCount = (blocksize / 4) - (4 + (2 * maxKeys));
+        for (int i = 0; i < wasteCount; i++) {
             buffer.putInt(-99);
         }
         raf.write(buf);
     }
 
-//    public void printTree(Block b, String tab) throws IOException {
-//        for (int i = 0; i < b.nodeArray.size(); i++) {
-//            System.out.println(tab + b.nodeArray.get(i).get(0));
-//        }
-//        System.out.println("---------------------------");
-//        for (int i = 0; i < b.child.size(); i++) {
-//            printTree(b.child.get(i), tab+'\t');
-//        }
-//    }
-//
-//    public static void main(String[] args) throws IOException {
-//        String metapath = "./tmp/bplustree.meta";
-//        String savepath = "./tmp/bplustree.tree";
-//        int blocksize = 52;
-//        int nblocks = 10;
-//
-//        File treefile = new File(savepath);
-//        if (treefile.exists()) {
-//            if (! treefile.delete()) {
-//                System.err.println("error: cannot remove files");
-//                System.exit(1);
-//            }
-//        }
-//
-//        HanyangSEBPlusTree tree = new HanyangSEBPlusTree();
-//        tree.open(metapath, savepath, blocksize, nblocks);
-//
-//        tree.insert(5, 10);
-//        tree.printTree(tree.root, "");
-//        tree.insert(6, 15);
-//        tree.printTree(tree.root, "");
-//        tree.insert(4, 20);
-//        tree.printTree(tree.root, "");
-//        tree.insert(7, 1);
-//        tree.printTree(tree.root, "");
-//        tree.insert(8, 5);
-//        tree.printTree(tree.root, "");
-//        tree.insert(17, 7);
-//        tree.printTree(tree.root, "");
-//        tree.insert(30, 8);
-//        tree.printTree(tree.root, "");
-//        tree.insert(1, 8);
-//        tree.printTree(tree.root, "");
-//        tree.insert(58, 1);
-//        tree.printTree(tree.root, "");
-//        tree.insert(25, 8);
-//        tree.printTree(tree.root, "");
-//        tree.insert(96, 32);
-//        tree.printTree(tree.root, "");
-//        tree.insert(21, 8);
-//        tree.printTree(tree.root, "");
-//        tree.insert(9, 98);
-//        tree.printTree(tree.root, "");
-//        tree.insert(57, 54);
-//        tree.printTree(tree.root, "");
-//        tree.insert(157, 54);
-//        tree.printTree(tree.root, "");
-//        tree.insert(247, 54);
-//        tree.printTree(tree.root, "");
-//        tree.insert(357, 254);
-//        tree.printTree(tree.root, "");
-//        tree.insert(557, 54);
-//        tree.printTree(tree.root, "");
-//        tree.insert(400, 54);
-//        tree.printTree(tree.root, "");
-//        tree.insert(567, 54);
-//        tree.printTree(tree.root, "");
-//        tree.insert(700, 54);
-//        tree.printTree(tree.root, "");
-//        tree.insert(557, 54);
-//        tree.printTree(tree.root, "");
-//        tree.insert(558, 54);
-//        tree.printTree(tree.root, "");
-//        tree.insert(559, 54);
-//        tree.printTree(tree.root, "");
-//        tree.insert(560, 54);
-//        tree.printTree(tree.root, "");
-//        tree.insert(561, 54);
-//        tree.printTree(tree.root, "");
-//        tree.close();
-//    }
+    public void printTree(Block b, String tab) throws IOException {
+        for (int i = 0; i < b.nodeArray.size(); i++) {
+            System.out.println(tab + b.nodeArray.get(i).get(0));
+        }
+
+        System.out.println("---------------------------");
+        for (int i = 0; i < b.child.size(); i++) {
+            printTree(b.child.get(i), tab+'\t');
+        }
+
+    }
 }
