@@ -6,8 +6,6 @@ import java.util.*;
 
 import io.github.hyerica_bdml.indexer.BPlusTree;
 
-import javax.print.DocFlavor;
-
 public class HanyangSEBPlusTree implements BPlusTree {
 
     /**
@@ -29,10 +27,11 @@ public class HanyangSEBPlusTree implements BPlusTree {
     public RandomAccessFile meta;
 
     public Block root;
-    public int blockPos = 1;
+    public int blockPos = 0;
     public int rootIndex = 0;
     public boolean inserted = false;
     public Map<Integer, Integer> posInfo = new HashMap<Integer, Integer>();
+    public ArrayList<Block> blockBuffer = new ArrayList<>(); //insert가 끝나고 써야하는 블락들을 모아놓은 버퍼
 
 
     @Override
@@ -57,7 +56,14 @@ public class HanyangSEBPlusTree implements BPlusTree {
                 buffer.position(0);
                 posInfo.put(buffer.getInt(), i);
             }
+            int hashSize = meta.readInt();
+            for(int i=0; i<hashSize; i++){
+                int pos = meta.readInt();
+                int pointer = meta.readInt();
+                posInfo.put(pos, pointer);
+            }
         }
+
     }
 
     private Block searchNode(int key) throws IOException { //leaf에 있는 block을 리턴
@@ -96,6 +102,8 @@ public class HanyangSEBPlusTree implements BPlusTree {
                 this.root = newRoot;
                 this.rootIndex = newRoot.myPos;
                 newRoot.lastVal = block.myPos;
+                meta.seek(0);
+                meta.writeInt(rootIndex);
 
                 block.parent = newRoot;
                 newRoot.addChild(block);
@@ -103,6 +111,7 @@ public class HanyangSEBPlusTree implements BPlusTree {
             newBlock.parent = block.parent;
             block.parent.addChild(newBlock);
             insertInternal(block.parent, midKey, newBlock.myPos);
+            blockBuffer.add(newBlock);
         }
         else {
             block.addNode(newNode);
@@ -112,6 +121,10 @@ public class HanyangSEBPlusTree implements BPlusTree {
                     block.parent.child.get(i).lastVal = block.parent.child.get(i+1).myPos;
                 }block.parent.child.get(i).lastVal = -1;
             }
+        }
+        blockBuffer.add(block);
+        for(Block b = blockBuffer.get(0); !blockBuffer.isEmpty(); blockBuffer.remove(0) ){
+            writeBlock(b);
         }
     }
 
@@ -159,6 +172,8 @@ public class HanyangSEBPlusTree implements BPlusTree {
                 Block newRoot = new Block(0);
                 this.root = newRoot;
                 this.rootIndex = newRoot.myPos;
+                meta.seek(0);
+                meta.writeInt(rootIndex);
                 newRoot.lastVal = block.myPos;
 
                 block.parent = newRoot;
@@ -171,6 +186,7 @@ public class HanyangSEBPlusTree implements BPlusTree {
         else{
             block.addNode(newNode);
         }
+        blockBuffer.add(block);
     }
 
 
@@ -189,10 +205,6 @@ public class HanyangSEBPlusTree implements BPlusTree {
         block.myPos = buffer.getInt();
         block.leaf = buffer.getInt();
         buffer.getInt();
-
-//        block.myPos = raf.readInt();
-//        block.leaf = raf.readInt();
-//        raf.readInt(); //nkeys는 추가하면서 알아서 늘어남 기본값 0
 
         int key;
         int val;
@@ -213,7 +225,6 @@ public class HanyangSEBPlusTree implements BPlusTree {
         return block;
     }
 
-    // 변수이름바꾸고 수정할거 있으면 수정해야함
     private int _search(Block block, int key) throws IOException {
         int changed = 0;
         while (block.leaf == 0) { // non-Leaf
@@ -253,8 +264,12 @@ public class HanyangSEBPlusTree implements BPlusTree {
         if (inserted) {
             meta.seek(0);
             meta.writeInt(rootIndex); // 파일을 open할때 첫번째 int인 rootindex를 읽음으로써 rootindex를 알 수 있다.
-            raf.seek(0);
-            traverse(root);
+            meta.writeInt(posInfo.size());
+            for (int blockPos : posInfo.keySet()) {
+                int blockPointer = posInfo.get(blockPos);
+                meta.writeInt(blockPos);
+                meta.writeInt(blockPointer);
+            }
         }
         meta.close();
         raf.close();
@@ -376,8 +391,8 @@ public class HanyangSEBPlusTree implements BPlusTree {
             raf.seek(posInfo.get(block.myPos));
         }
         else {
-            raf.seek(raf.length());                       // posInfo의 size -> 포인터의 끝
-            posInfo.put(block.myPos, (int) raf.getFilePointer());       // posInfo에 block의 myPos인 key와 posInfo.size인 value를 추가
+            raf.seek(raf.length()); // posInfo의 size -> 포인터의 끝
+            posInfo.put(block.myPos, (int) raf.getFilePointer()); // posInfo에 block의 myPos인 key와 posInfo.size인 value를 추가
         }
         buffer.putInt(block.myPos);
         buffer.putInt(block.leaf);
@@ -396,17 +411,5 @@ public class HanyangSEBPlusTree implements BPlusTree {
             buffer.putInt(-99);
         }
         raf.write(buf);
-    }
-
-    public void printTree(Block b, String tab) throws IOException {
-        for (int i = 0; i < b.nodeArray.size(); i++) {
-            System.out.println(tab + b.nodeArray.get(i).get(0));
-        }
-
-        System.out.println("---------------------------");
-        for (int i = 0; i < b.child.size(); i++) {
-            printTree(b.child.get(i), tab+'\t');
-        }
-
     }
 }
