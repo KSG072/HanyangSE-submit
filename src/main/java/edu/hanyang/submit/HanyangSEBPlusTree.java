@@ -365,22 +365,31 @@ public class HanyangSEBPlusTree implements BPlusTree {
         }
     }
 
-    private void write(Block block) throws IOException {
+    private void writeBlock(Block block) throws IOException {
+        buffer.clear()
         if (posInfo.containsKey(block.myPos)) {
-            raf.seek(posInfo.get(block.myPos));
+            raf.seek(raf.len);
         }
         else {
-            raf.seek(posInfo.size());                       // posInfo의 size -> 포인터의 끝
-            posInfo.put(block.myPos, posInfo.size());       // posInfo에 block의 myPos인 key와 posInfo.size인 value를 추가
+            raf.seek(raf.length());                       // posInfo의 size -> 포인터의 끝
+            posInfo.put(block.myPos, raf.getFilePointer());       // posInfo에 block의 myPos인 key와 posInfo.size인 value를 추가
         }
-        buf[0] = (byte) block.myPos;
-        buf[4] = (byte) block.leaf;
-        buf[8] = (byte) block.nkeys;
+        buffer.putInt(block.mypos);
+        buffer.putInt(block.leaf);
+        buffer.putInt(block.nkeys);
         for (int i = 0; i < block.nkeys; i++) {
-            buf[(i*4)+12] = (byte) block.getKey(i);
-            buf[(i*4)+16] = (byte) block.getValue(i);
+            buffer.putInt(block.getKey(i));
+            buffer.putInt(block.getValue(i));
         }
-        buf[blocksize-4] = (byte) block.lastVal;
+        for (int i = 0; i < maxKeys - b.nkeys; i++) {
+            buffer.putInt(-1);
+            buffer.putInt(-1);
+        }
+        raf.writeInt(block.lastVal);
+        int wastecount = (blocksize / 4) - (4 + (2 * maxKeys));
+        for (int i = 0; i < wastecount; i++) {
+            buffer.putInt(-99);
+        }
         raf.write(buf);
     }
 
