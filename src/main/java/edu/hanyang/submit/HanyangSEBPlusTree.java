@@ -366,7 +366,7 @@ public class HanyangSEBPlusTree implements BPlusTree {
     }
 
     private void writeBlock(Block block) throws IOException {
-        buffer.clear()
+        buffer.clear();
         if (posInfo.containsKey(block.myPos)) {
             raf.seek(posInfo.get(block.myPos));
         }
@@ -385,7 +385,7 @@ public class HanyangSEBPlusTree implements BPlusTree {
             buffer.putInt(-1);
             buffer.putInt(-1);
         }
-        raf.writeInt(block.lastVal);
+        buffer.putInt(block.lastVal);
         int wastecount = (blocksize / 4) - (4 + (2 * maxKeys));
         for (int i = 0; i < wastecount; i++) {
             buffer.putInt(-99);
