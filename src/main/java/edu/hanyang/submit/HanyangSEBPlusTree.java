@@ -368,7 +368,7 @@ public class HanyangSEBPlusTree implements BPlusTree {
     private void writeBlock(Block block) throws IOException {
         buffer.clear()
         if (posInfo.containsKey(block.myPos)) {
-            raf.seek(raf.len);
+            raf.seek(posInfo.get(block.myPos));
         }
         else {
             raf.seek(raf.length());                       // posInfo의 size -> 포인터의 끝
