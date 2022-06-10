@@ -83,7 +83,48 @@ public class HanyangSEBPlusTree implements BPlusTree {
     public void insert(int key, int val) throws IOException {
         this.inserted = true;
         Block block = searchNode(key);
-        insertInternal(block, key, val);
+        ArrayList<Integer> newNode = new ArrayList<>();
+        newNode.add(key);
+        newNode.add(val);
+        if (block.nkeys+1 > maxKeys) {
+            block.addNode(newNode);
+            int mid = (int) Math.ceil((double) maxKeys / 2);
+            Block newBlock = split(block, mid);
+            if(block.parent == null) {
+                Block newRoot = new Block(0);
+                this.root = newRoot;
+                this.rootIndex = newRoot.myPos;
+                newRoot.lastVal = block.myPos;
+
+                block.parent = newRoot;
+                newRoot.addChild(block);
+                newBlock.parent = newRoot;
+
+            }
+            insertInternal(block.parent, mid, newBlock.myPos);
+        }
+        else {
+            block.addNode(newNode);
+        }
+
+    }
+
+    private Block split(Block block, int mid) {
+        Block newBlock = new Block();
+
+        for(int i=0; i<mid; i++) {
+            newBlock.addNode(block.getNode(0));
+            block.nodeArray.remove(0);
+        }
+        if(block.leaf == 0) {
+            for(int i=0; i<=mid; i++) {
+                newBlock.addChild(block.child.get(0));
+                block.child.remove(0);
+            }
+        }
+        newBlock.lastVal = block.getValue(mid);
+
+        return newBlock;
     }
 
     /*
@@ -95,55 +136,77 @@ public class HanyangSEBPlusTree implements BPlusTree {
         newNode.add(key);
         newNode.add(val);
         block.addNode(newNode);
-
-        if (block.nkeys > maxKeys) {
-            Block newBlock;
+        if(block.nkeys < maxKeys) {
             int mid = (int) Math.ceil((double) maxKeys / 2);
             int midKey = block.getKey(mid);
-            if (block.leaf == 1) {
-                newBlock = new Block(block.leaf);
-                for(int i=0; i<mid; i++) newBlock.addNode(block.getNode(i));
-                for(int i=0; i<mid; i++) {block.nodeArray.remove(0); block.nkeys--;}
-            } else { // TODO : 여기 else 칸만 고쳐보면 될듯?
-                newBlock = new Block(block.leaf);
-                for(int i=0; i<mid; i++) newBlock.addNode(block.getNode(i));
-                newBlock.lastVal = block.getValue(mid);
-                for(int i=0; i<=mid; i++) {block.nodeArray.remove(0); block.nkeys--;}
-                for(int i=0; i<=mid; i++) newBlock.addChild(block.child.get(i));
-                for(int i=0; i<=mid; i++) block.child.remove(0);
+            Block newBlock = split(block, mid);
+
+            if (block.parent == null) {
+                Block newRoot = new Block(0);
+                this.root = newRoot;
+                this.rootIndex = newRoot.myPos;
+                block.parent = newRoot;
+                block.lastVal = block.myPos;
+
+                block.parent.addChild(block);
+                block.parent.addChild(newBlock);
+            }
+            else {
 
             }
-            if (block.parent != null) {
-                block.parent.addChild(newBlock);
-                newBlock.parent = block.parent;
-                insertInternal(block.parent, midKey, newBlock.myPos);
-                block.parent.lastVal = block.parent.child.get(block.parent.child.size()-1).myPos;
-                if(block.leaf == 1){
-                    for(int i=0; i<block.parent.nkeys-1; i++) block.parent.child.get(i).lastVal = block.parent.child.get(i+1).myPos;
-                    block.parent.child.get(block.parent.nkeys).lastVal = -1;
-                }
-            } else {
-                Block newRoot = new Block(0);
-                block.parent = newRoot;
-                newBlock.parent = newRoot;
-                rootIndex = newRoot.myPos;
-                ArrayList<Integer> newRootNode = new ArrayList<>();
-                newRootNode.add(midKey);
-                newRootNode.add(newBlock.myPos);
-                newRoot.addNode(newRootNode);
-                newRoot.lastVal = block.myPos;
-                newRoot.addChild(block);
-                newRoot.addChild(newBlock);
-                this.root = newRoot;
-            }
-            if(block.leaf == 0) {
-                newBlock.lastVal = newBlock.child.get(newBlock.nkeys).myPos;
-            }
-        }
-        if(block.leaf == 0){
-            block.lastVal = block.child.get(block.nkeys).myPos;
+            insertInternal(block.parent, midKey, newBlock.myPos);
         }
     }
+//
+//        if (block.nkeys > maxKeys) {
+//            Block newBlock;
+//            int mid = (int) Math.ceil((double) maxKeys / 2);
+//            int midKey = block.getKey(mid);
+//            if (block.leaf == 1) {
+//                newBlock = new Block(block.leaf);
+//                for(int i=0; i<mid; i++) newBlock.addNode(block.getNode(i));
+//                for(int i=0; i<mid; i++) {block.nodeArray.remove(0); block.nkeys--;}
+//            } else { // TODO : 여기 else 칸만 고쳐보면 될듯?
+//                newBlock = new Block(block.leaf);
+//                for(int i=0; i<mid; i++) newBlock.addNode(block.getNode(i));
+//                newBlock.lastVal = block.getValue(mid);
+//                for(int i=0; i<=mid; i++) {block.nodeArray.remove(0); block.nkeys--;}
+//                for(int i=0; i<=mid; i++) newBlock.addChild(block.child.get(i));
+//                for(int i=0; i<=mid; i++) block.child.remove(0);
+//
+//            }
+//            if (block.parent != null) {
+//                block.parent.addChild(newBlock);
+//                newBlock.parent = block.parent;
+//                insertInternal(block.parent, midKey, newBlock.myPos);
+//                block.parent.lastVal = block.parent.child.get(block.parent.child.size()-1).myPos;
+//                if(block.leaf == 1){
+//                    for(int i=0; i<block.parent.nkeys-1; i++) block.parent.child.get(i).lastVal = block.parent.child.get(i+1).myPos;
+//                    block.parent.child.get(block.parent.nkeys).lastVal = -1;
+//                }
+//            } else {
+//                Block newRoot = new Block(0);
+//                block.parent = newRoot;
+//                newBlock.parent = newRoot;
+//                rootIndex = newRoot.myPos;
+//                ArrayList<Integer> newRootNode = new ArrayList<>();
+//                newRootNode.add(midKey);
+//                newRootNode.add(newBlock.myPos);
+//                newRoot.addNode(newRootNode);
+//                newRoot.lastVal = block.myPos;
+//                newRoot.addChild(block);
+//                newRoot.addChild(newBlock);
+//                this.root = newRoot;
+//            }
+//            if(block.leaf == 0) {
+//                newBlock.lastVal = newBlock.child.get(newBlock.nkeys).myPos;
+//            }
+//        }
+//        if(block.leaf == 0){
+//            block.lastVal = block.child.get(block.nkeys).myPos;
+//        }
+//    }
+
 
     @Override
     public int search(int key) throws IOException { // value 값 리턴
@@ -339,5 +402,86 @@ public class HanyangSEBPlusTree implements BPlusTree {
                 this.child.add(child);
             }
         }
+    }
+    public void printTree(Block b, String tab) throws IOException {
+        for (int i = 1; i < b.nodeArray.size(); i++) {
+            System.out.println(tab + b.nodeArray.get(i).get(0));
+        }
+        System.out.println("---------------------------");
+        for (int i = 0; i < b.child.size(); i++) {
+            printTree(b.child.get(i), tab+'\t');
+        }
+    }
+
+    public static void main(String[] args) throws IOException {
+        String metapath = "./tmp/bplustree.meta";
+        String savepath = "./tmp/bplustree.tree";
+        int blocksize = 52;
+        int nblocks = 10;
+
+        File treefile = new File(savepath);
+        if (treefile.exists()) {
+            if (! treefile.delete()) {
+                System.err.println("error: cannot remove files");
+                System.exit(1);
+            }
+        }
+
+        HanyangSEBPlusTree tree = new HanyangSEBPlusTree();
+        tree.open(metapath, savepath, blocksize, nblocks);
+
+        tree.insert(5, 10);
+        tree.printTree(tree.root, "");
+        tree.insert(6, 15);
+        tree.printTree(tree.root, "");
+        tree.insert(4, 20);
+        tree.printTree(tree.root, "");
+        tree.insert(7, 1);
+        tree.printTree(tree.root, "");
+        tree.insert(8, 5);
+        tree.printTree(tree.root, "");
+        tree.insert(17, 7);
+        tree.printTree(tree.root, "");
+        tree.insert(30, 8);
+        tree.printTree(tree.root, "");
+        tree.insert(1, 8);
+        tree.printTree(tree.root, "");
+        tree.insert(58, 1);
+        tree.printTree(tree.root, "");
+        tree.insert(25, 8);
+        tree.printTree(tree.root, "");
+        tree.insert(96, 32);
+        tree.printTree(tree.root, "");
+        tree.insert(21, 8);
+        tree.printTree(tree.root, "");
+        tree.insert(9, 98);
+        tree.printTree(tree.root, "");
+        tree.insert(57, 54);
+        tree.printTree(tree.root, "");
+        tree.insert(157, 54);
+        tree.printTree(tree.root, "");
+        tree.insert(247, 54);
+        tree.printTree(tree.root, "");
+        tree.insert(357, 254);
+        tree.printTree(tree.root, "");
+        tree.insert(557, 54);
+        tree.printTree(tree.root, "");
+        tree.insert(400, 54);
+        tree.printTree(tree.root, "");
+        tree.insert(567, 54);
+        tree.printTree(tree.root, "");
+        tree.insert(700, 54);
+        tree.printTree(tree.root, "");
+        tree.insert(557, 54);
+        tree.printTree(tree.root, "");
+        tree.insert(558, 54);
+        tree.printTree(tree.root, "");
+        tree.insert(559, 54);
+        tree.printTree(tree.root, "");
+        tree.insert(560, 54);
+        tree.printTree(tree.root, "");
+        tree.insert(561, 54);
+        tree.printTree(tree.root, "");
+        tree.close();
     }
 }
